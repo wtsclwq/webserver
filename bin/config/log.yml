@@ -11,7 +11,7 @@ loggers:
       appenders:
           - type: Stdout
           - type: File
-            file: "/workspaces/codespaces-blank/logs/system.txt"
+            file: "/workspaces/codespaces-blank/logs/logger1.txt"
     - name: logger2
       level: warn
       appenders:
