@@ -1,0 +1,1 @@
+/usr/bin/clang++  -std=c++17 -O0 -ggdb -Wall -Werror -fPIC -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations -Wno-deprecated -g CMakeFiles/test_env.dir/test/test_env.cpp.o -o /workspaces/codespaces-blank/bin/test_env  -Wl,-rpath,/workspaces/codespaces-blank/lib /workspaces/codespaces-blank/lib/libserver.so -lpthread -lyaml-cpp -ldl 

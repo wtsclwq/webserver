@@ -1,0 +1,74 @@
+[
+{
+  "directory": "/workspaces/codespaces-blank/build",
+  "command": "/usr/bin/clang++ -Dserver_EXPORTS -D__FILE__=\\\"server/log.cpp\\\" -I/workspaces/codespaces-blank/.  -std=c++17 -O0 -ggdb -Wall -Werror -fPIC -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations -Wno-deprecated -g -fPIC -o CMakeFiles/server.dir/server/log.cpp.o -c /workspaces/codespaces-blank/server/log.cpp",
+  "file": "/workspaces/codespaces-blank/server/log.cpp",
+  "output": "CMakeFiles/server.dir/server/log.cpp.o"
+},
+{
+  "directory": "/workspaces/codespaces-blank/build",
+  "command": "/usr/bin/clang++ -Dserver_EXPORTS -D__FILE__=\\\"server/utils.cpp\\\" -I/workspaces/codespaces-blank/.  -std=c++17 -O0 -ggdb -Wall -Werror -fPIC -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations -Wno-deprecated -g -fPIC -o CMakeFiles/server.dir/server/utils.cpp.o -c /workspaces/codespaces-blank/server/utils.cpp",
+  "file": "/workspaces/codespaces-blank/server/utils.cpp",
+  "output": "CMakeFiles/server.dir/server/utils.cpp.o"
+},
+{
+  "directory": "/workspaces/codespaces-blank/build",
+  "command": "/usr/bin/clang++ -Dserver_EXPORTS -D__FILE__=\\\"server/env.cpp\\\" -I/workspaces/codespaces-blank/.  -std=c++17 -O0 -ggdb -Wall -Werror -fPIC -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations -Wno-deprecated -g -fPIC -o CMakeFiles/server.dir/server/env.cpp.o -c /workspaces/codespaces-blank/server/env.cpp",
+  "file": "/workspaces/codespaces-blank/server/env.cpp",
+  "output": "CMakeFiles/server.dir/server/env.cpp.o"
+},
+{
+  "directory": "/workspaces/codespaces-blank/build",
+  "command": "/usr/bin/clang++ -Dserver_EXPORTS -D__FILE__=\\\"server/config.cpp\\\" -I/workspaces/codespaces-blank/.  -std=c++17 -O0 -ggdb -Wall -Werror -fPIC -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations -Wno-deprecated -g -fPIC -o CMakeFiles/server.dir/server/config.cpp.o -c /workspaces/codespaces-blank/server/config.cpp",
+  "file": "/workspaces/codespaces-blank/server/config.cpp",
+  "output": "CMakeFiles/server.dir/server/config.cpp.o"
+},
+{
+  "directory": "/workspaces/codespaces-blank/build",
+  "command": "/usr/bin/clang++ -Dserver_EXPORTS -D__FILE__=\\\"server/thread.cpp\\\" -I/workspaces/codespaces-blank/.  -std=c++17 -O0 -ggdb -Wall -Werror -fPIC -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations -Wno-deprecated -g -fPIC -o CMakeFiles/server.dir/server/thread.cpp.o -c /workspaces/codespaces-blank/server/thread.cpp",
+  "file": "/workspaces/codespaces-blank/server/thread.cpp",
+  "output": "CMakeFiles/server.dir/server/thread.cpp.o"
+},
+{
+  "directory": "/workspaces/codespaces-blank/build",
+  "command": "/usr/bin/clang++ -Dserver_EXPORTS -D__FILE__=\\\"server/lock.cpp\\\" -I/workspaces/codespaces-blank/.  -std=c++17 -O0 -ggdb -Wall -Werror -fPIC -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations -Wno-deprecated -g -fPIC -o CMakeFiles/server.dir/server/lock.cpp.o -c /workspaces/codespaces-blank/server/lock.cpp",
+  "file": "/workspaces/codespaces-blank/server/lock.cpp",
+  "output": "CMakeFiles/server.dir/server/lock.cpp.o"
+},
+{
+  "directory": "/workspaces/codespaces-blank/build",
+  "command": "/usr/bin/clang++  -D__FILE__=\\\"test/test_env.cpp\\\" -I/workspaces/codespaces-blank/.  -std=c++17 -O0 -ggdb -Wall -Werror -fPIC -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations -Wno-deprecated -g -o CMakeFiles/test_env.dir/test/test_env.cpp.o -c /workspaces/codespaces-blank/test/test_env.cpp",
+  "file": "/workspaces/codespaces-blank/test/test_env.cpp",
+  "output": "CMakeFiles/test_env.dir/test/test_env.cpp.o"
+},
+{
+  "directory": "/workspaces/codespaces-blank/build",
+  "command": "/usr/bin/clang++  -D__FILE__=\\\"test/test_config.cpp\\\" -I/workspaces/codespaces-blank/.  -std=c++17 -O0 -ggdb -Wall -Werror -fPIC -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations -Wno-deprecated -g -o CMakeFiles/test_config.dir/test/test_config.cpp.o -c /workspaces/codespaces-blank/test/test_config.cpp",
+  "file": "/workspaces/codespaces-blank/test/test_config.cpp",
+  "output": "CMakeFiles/test_config.dir/test/test_config.cpp.o"
+},
+{
+  "directory": "/workspaces/codespaces-blank/build",
+  "command": "/usr/bin/clang++  -D__FILE__=\\\"test/test_thread.cpp\\\" -I/workspaces/codespaces-blank/.  -std=c++17 -O0 -ggdb -Wall -Werror -fPIC -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations -Wno-deprecated -g -o CMakeFiles/test_thread.dir/test/test_thread.cpp.o -c /workspaces/codespaces-blank/test/test_thread.cpp",
+  "file": "/workspaces/codespaces-blank/test/test_thread.cpp",
+  "output": "CMakeFiles/test_thread.dir/test/test_thread.cpp.o"
+},
+{
+  "directory": "/workspaces/codespaces-blank/build",
+  "command": "/usr/bin/clang++  -D__FILE__=\\\"test/test_lock.cpp\\\" -I/workspaces/codespaces-blank/.  -std=c++17 -O0 -ggdb -Wall -Werror -fPIC -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations -Wno-deprecated -g -o CMakeFiles/test_lock.dir/test/test_lock.cpp.o -c /workspaces/codespaces-blank/test/test_lock.cpp",
+  "file": "/workspaces/codespaces-blank/test/test_lock.cpp",
+  "output": "CMakeFiles/test_lock.dir/test/test_lock.cpp.o"
+},
+{
+  "directory": "/workspaces/codespaces-blank/build",
+  "command": "/usr/bin/clang++  -D__FILE__=\\\"test/test_log.cpp\\\" -I/workspaces/codespaces-blank/.  -std=c++17 -O0 -ggdb -Wall -Werror -fPIC -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations -Wno-deprecated -g -o CMakeFiles/test_log.dir/test/test_log.cpp.o -c /workspaces/codespaces-blank/test/test_log.cpp",
+  "file": "/workspaces/codespaces-blank/test/test_log.cpp",
+  "output": "CMakeFiles/test_log.dir/test/test_log.cpp.o"
+},
+{
+  "directory": "/workspaces/codespaces-blank/build",
+  "command": "/usr/bin/clang++  -D__FILE__=\\\"test/test_utils.cpp\\\" -I/workspaces/codespaces-blank/.  -std=c++17 -O0 -ggdb -Wall -Werror -fPIC -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations -Wno-deprecated -g -o CMakeFiles/test_utils.dir/test/test_utils.cpp.o -c /workspaces/codespaces-blank/test/test_utils.cpp",
+  "file": "/workspaces/codespaces-blank/test/test_utils.cpp",
+  "output": "CMakeFiles/test_utils.dir/test/test_utils.cpp.o"
+}
+]
