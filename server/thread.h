@@ -9,6 +9,8 @@
 namespace wtsclwq {
 class Thread : Noncopyable {
  public:
+  using s_ptr = std::shared_ptr<Thread>;
+
   /**
    * @brief 构造函数
    *

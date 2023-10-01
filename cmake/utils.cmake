@@ -28,5 +28,6 @@ function(wtsclwq_add_executable targetname srcs depends libs)
     add_executable(${targetname} ${srcs})
     add_dependencies(${targetname} ${depends})
     force_redefine_file_macro_for_sources(${targetname})
+    # -rdynamic: 将所有符号都加入到符号表中，便于使用dlopen或者backtrace追踪到符号
     target_link_libraries(${targetname} ${libs})
 endfunction()

@@ -7,7 +7,7 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 # 编译器选项
 set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -std=c++17 -O0 -ggdb -Wall -Werror")
 
-# -rdynamic: 将所有符号都加入到符号表中，便于使用dlopen或者backtrace追踪到符号
+
 # -fPIC: 生成位置无关的代码，便于动态链接
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 
@@ -35,7 +35,8 @@ set(LIB_SRC
     server/thread.cpp 
     server/lock.cpp
     )
-
+    
+add_link_options("-rdynamic")
 add_library(server SHARED ${LIB_SRC})
 force_redefine_file_macro_for_sources(server)
 

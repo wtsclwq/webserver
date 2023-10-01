@@ -47,7 +47,7 @@ static auto Demangle(std::string_view str) -> std::string {
   if (1 == sscanf(str.data(), "%255s", res.data())) {
     return res;
   }
-  return res;
+  return std::string(str);
 }
 
 void Backtrace(std::vector<std::string> *bt, int size, int skip) {
@@ -60,7 +60,7 @@ void Backtrace(std::vector<std::string> *bt, int size, int skip) {
   }
 
   for (size_t i = skip; i < s; ++i) {
-    bt->emplace_back(Demangle(strings[i]));
+    bt->push_back(Demangle(strings[i]));
   }
 
   free(strings);
@@ -102,10 +102,10 @@ auto ToUpper(std::string_view str) -> std::string {
   return result;
 }
 
-auto ToLower(const std::string &name) -> std::string {
+auto ToLower(std::string_view str) -> std::string {
   std::string result;
-  result.resize(name.size());
-  std::transform(name.begin(), name.end(), result.begin(), ::tolower);
+  result.resize(str.size());
+  std::transform(str.begin(), str.end(), result.begin(), ::tolower);
   return result;
 }
 

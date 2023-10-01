@@ -60,7 +60,7 @@ auto Thread::RealProcess(void *args) -> void * {
   std::function<void()> task; // 用于保存this->task_
   thread->task_.swap(task);  // 交换this->task_和task，使得this->task_为空，task保存了this->task_的值
 
-  thread->sem_.Post(); // 通知构造函数，线程已经启动成功
+  thread->sem_.Post(); // 通知构造函数所在线程，新线程已经启动成功
   task(); // 执行任务
   return nullptr;
 }
