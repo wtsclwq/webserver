@@ -3,21 +3,21 @@
 
 auto root_logger = ROOT_LOGGER;
 
-auto g_int = wtsclwq::ConfigManager::GetOrAddDefaultConfigItem("global.int", 8080, "global int");
-auto g_float = wtsclwq::ConfigManager::GetOrAddDefaultConfigItem("global.float", 1.23F, "global float");
+auto g_int = wtsclwq::ConfigMgr::GetInstance()->GetOrAddDefaultConfigItem("global.int", 8080, "global int");
+auto g_float = wtsclwq::ConfigMgr::GetInstance()->GetOrAddDefaultConfigItem("global.float", 1.23F, "global float");
 auto g_string =
-    wtsclwq::ConfigManager::GetOrAddDefaultConfigItem("global.string", std::string("hello world"), "global string");
-auto g_list = wtsclwq::ConfigManager::GetOrAddDefaultConfigItem("global.list", std::list{1, 2, 3}, "global list");
-auto g_set = wtsclwq::ConfigManager::GetOrAddDefaultConfigItem("global.set", std::set{1, 2, 3}, "global set");
-auto g_unordered_set = wtsclwq::ConfigManager::GetOrAddDefaultConfigItem("global.unordered_set", std::set{1, 2, 3},
+    wtsclwq::ConfigMgr::GetInstance()->GetOrAddDefaultConfigItem("global.string", std::string("hello world"), "global string");
+auto g_list = wtsclwq::ConfigMgr::GetInstance()->GetOrAddDefaultConfigItem("global.list", std::list{1, 2, 3}, "global list");
+auto g_set = wtsclwq::ConfigMgr::GetInstance()->GetOrAddDefaultConfigItem("global.set", std::set{1, 2, 3}, "global set");
+auto g_unordered_set = wtsclwq::ConfigMgr::GetInstance()->GetOrAddDefaultConfigItem("global.unordered_set", std::set{1, 2, 3},
                                                                          "global unordered_set");
-auto g_map = wtsclwq::ConfigManager::GetOrAddDefaultConfigItem(
+auto g_map = wtsclwq::ConfigMgr::GetInstance()->GetOrAddDefaultConfigItem(
     "global.map", std::map<std::string, int>{{"key1", 1}, {"key2", 3}, {"key3", 3}}, "global map");
-auto g_unordered_map = wtsclwq::ConfigManager::GetOrAddDefaultConfigItem(
+auto g_unordered_map = wtsclwq::ConfigMgr::GetInstance()->GetOrAddDefaultConfigItem(
     "global.unordered_map", std::unordered_map<std::string, int>{{"key1", 1}, {"key2", 3}, {"key3", 3}},
     "global unordered_map");
 auto g_vector =
-    wtsclwq::ConfigManager::GetOrAddDefaultConfigItem("global.vector", std::vector{1, 2, 3}, "global vector");
+    wtsclwq::ConfigMgr::GetInstance()->GetOrAddDefaultConfigItem("global.vector", std::vector{1, 2, 3}, "global vector");
 
 class Person {
  public:
@@ -66,12 +66,12 @@ class LexicalCast<Person, std::string> {
 };
 }  // namespace wtsclwq
 
-auto g_person = wtsclwq::ConfigManager::GetOrAddDefaultConfigItem("global.person", Person(), "global person");
+auto g_person = wtsclwq::ConfigMgr::GetInstance()->GetOrAddDefaultConfigItem("global.person", Person(), "global person");
 
-auto g_person_map = wtsclwq::ConfigManager::GetOrAddDefaultConfigItem(
+auto g_person_map = wtsclwq::ConfigMgr::GetInstance()->GetOrAddDefaultConfigItem(
     "global.person_map", std::map<std::string, Person>{{}}, "global person map");
 
-auto g_person_vec_map = wtsclwq::ConfigManager::GetOrAddDefaultConfigItem(
+auto g_person_vec_map = wtsclwq::ConfigMgr::GetInstance()->GetOrAddDefaultConfigItem(
     "global.person_vec_map", std::map<std::string, std::vector<Person>>{{}}, "global person vec map");
 
 void TestClass() {
@@ -147,13 +147,13 @@ auto main(int argc, char **argv) -> int {
 
   // 从配置文件中加载配置，由于更新了配置，会触发配置项的配置变更回调函数
   wtsclwq::EnvMgr::GetInstance()->Init(argc, argv);
-  wtsclwq::ConfigManager::LoadFromConfDir(wtsclwq::EnvMgr::GetInstance()->GetConfigPath());
+  wtsclwq::ConfigMgr::GetInstance()->LoadFromConfDir(wtsclwq::EnvMgr::GetInstance()->GetConfigPath());
   LOG_INFO(root_logger) << "after============================";
 
   TestConfig();
 
   // 遍历所有配置
-  wtsclwq::ConfigManager::Visit([](const wtsclwq::ConfigItemBase::s_ptr &var) {
+  wtsclwq::ConfigMgr::GetInstance()->Visit([](const wtsclwq::ConfigItemBase::s_ptr &var) {
     LOG_INFO(root_logger) << "name=" << var->GetName() << " description=" << var->GetDescription()
                           << " typename=" << var->GetType() << " value=" << var->ToString();
   });

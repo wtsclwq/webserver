@@ -19,6 +19,7 @@
 #include <unordered_set>
 #include <vector>
 #include "log.h"
+#include "server/singleton.h"
 
 namespace wtsclwq {
 class ConfigItemBase {
@@ -159,7 +160,7 @@ class ConfigManager {
    * @return 配置项
    */
   template <typename T>
-  static auto GetConfigItem(const std::string &name) -> typename ConfigItem<T>::s_ptr;
+  auto GetConfigItem(const std::string &name) -> typename ConfigItem<T>::s_ptr;
 
   /**
    * @brief 查找或者创建一个配置项
@@ -169,34 +170,35 @@ class ConfigManager {
    * @return ConfigItem<T>::s_ptr
    */
   template <typename T>
-  static auto GetOrAddDefaultConfigItem(const std::string &name, const T &default_value,
-                                        const std::string &description = "") -> typename ConfigItem<T>::s_ptr;
+  auto GetOrAddDefaultConfigItem(const std::string &name, const T &default_value, const std::string &description = "")
+      -> typename ConfigItem<T>::s_ptr;
 
   /**
    * @brief 使用YAML::Node初始化配置项
    */
-  static void LoadFromYaml(const YAML::Node &root);
+  void LoadFromYaml(const YAML::Node &root);
 
   /**
    * @brief 从path文件夹中加载配置文件
    */
-  static void LoadFromConfDir(std::string_view path, bool force = false);
+  void LoadFromConfDir(std::string_view path, bool force = false);
 
   /**
    * @brief 查找配置项，返回配置项的基类指针
    */
-  static auto GetConfigItemBase(const std::string &name) -> ConfigItemBase::s_ptr;
+  auto GetConfigItemBase(const std::string &name) -> ConfigItemBase::s_ptr;
 
   /**
    * @brief 遍历所有配置项，对其使用回调函数
    */
-  static void Visit(const std::function<void(ConfigItemBase::s_ptr)> &cb);
+  void Visit(const std::function<void(ConfigItemBase::s_ptr)> &cb);
 
  private:
-  static auto GetConfigDict() -> ConfigItemDict &;
-
-  static auto GetMutex() -> MutexType &;
+  ConfigItemDict dict_{};  // 配置项字典
+  MutexType mutex_{};      // 读写锁
 };
+
+using ConfigMgr = SingletonPtr<ConfigManager>;
 
 /**
  * @brief 偏特化，将yaml字符串转换成std::vector<T>
@@ -559,9 +561,9 @@ auto LexicalCast<std::unordered_map<std::string, T>, std::string>::operator()(
 template <typename T>
 auto ConfigManager::GetConfigItem(const std::string &name) -> typename ConfigItem<T>::s_ptr {
   // 读锁
-  std::shared_lock<MutexType> lock(GetMutex());
-  auto it = GetConfigDict().find(name);
-  if (it == GetConfigDict().end()) {
+  std::shared_lock<MutexType> lock(mutex_);
+  auto it = dict_.find(name);
+  if (it == dict_.end()) {
     return nullptr;
   }
   // 利用dynamic_pointer_cast进行智能指针的类型转换，多态，转换失败返回nullptr
@@ -584,14 +586,14 @@ auto ConfigManager::GetOrAddDefaultConfigItem(const std::string &name, const T &
     return item;
   }
   // 写锁
-  std::lock_guard<MutexType> lock(GetMutex());
+  std::lock_guard<MutexType> lock(mutex_);
   if (name.find_first_not_of("abcdefghikjlmnopqrstuvwxyz._012345678") != std::string::npos) {
     LOG_ERROR(ROOT_LOGGER) << "Lookup name invalid " << name;
     throw std::invalid_argument(name);
   }
 
   item = std::make_shared<ConfigItem<T>>(name, default_value, description);
-  GetConfigDict().emplace(name, item);
+  dict_.emplace(name, item);
   return item;
 }
 

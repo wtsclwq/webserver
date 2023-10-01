@@ -24,10 +24,9 @@ auto ConfigItemBase::GetName() const -> std::string { return name_; }
 auto ConfigItemBase::GetDescription() const -> std::string { return description_; }
 
 auto ConfigManager::GetConfigItemBase(const std::string &name) -> ConfigItemBase::s_ptr {
-  std::shared_lock<MutexType> lock(GetMutex());
-  auto &dict = GetConfigDict();
-  auto it = dict.find(name);
-  if (it == dict.end()) {
+  std::shared_lock<MutexType> lock(mutex_);
+  auto it = dict_.find(name);
+  if (it == dict_.end()) {
     return nullptr;
   }
   return it->second;
@@ -110,21 +109,9 @@ void ConfigManager::LoadFromConfDir(std::string_view path, bool force) {
 }
 
 void ConfigManager::Visit(const std::function<void(ConfigItemBase::s_ptr)> &cb) {
-  std::shared_lock<MutexType> lock(GetMutex());
-  auto &dict = GetConfigDict();
-  for (auto &i : dict) {
+  std::shared_lock<MutexType> lock(mutex_);
+  for (auto &i : dict_) {
     cb(i.second);
   }
 }
-
-auto ConfigManager::GetConfigDict() -> ConfigItemDict & {
-  static ConfigItemDict config_dict;
-  return config_dict;
-}
-
-auto ConfigManager::GetMutex() -> MutexType & {
-  static MutexType mutex;
-  return mutex;
-}
-
 }  // namespace wtsclwq

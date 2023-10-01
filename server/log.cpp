@@ -638,7 +638,7 @@ class LexicalCast<LoggerDefine, std::string> {
 };
 
 ConfigItem<std::set<LoggerDefine>>::s_ptr g_log_define =
-    ConfigManager::GetOrAddDefaultConfigItem("loggers", std::set<LoggerDefine>{}, "loggers");
+    ConfigMgr::GetInstance()->GetOrAddDefaultConfigItem("loggers", std::set<LoggerDefine>{}, "loggers");
 
 struct LogIniter {
   LogIniter() {

@@ -1,0 +1,21 @@
+loggers:
+    - name: root
+      level: info
+      appenders:
+          - type: Stdout
+            pattern: "%d{%Y-%m-%d %H:%M:%S} %T%t%T%N%T%C%T[%p]%T[%c]%T%f:%l%T%m%n"
+          - type: File
+            file: "/workspaces/codespaces-blank/logs/root.txt"
+    - name: logger1
+      level: info
+      appenders:
+          - type: Stdout
+          - type: File
+            file: "/workspaces/codespaces-blank/logs/system.txt"
+    - name: logger2
+      level: warn
+      appenders:
+          - type: Stdout
+            pattern: "%f:%l%T%m%n"
+
+

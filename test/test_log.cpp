@@ -8,7 +8,7 @@ auto logger2 = NAMED_LOGGER("logger2");
 
 auto main(int argc, char **argv) -> int {
   wtsclwq::EnvMgr::GetInstance()->Init(argc, argv);
-  wtsclwq::ConfigManager::LoadFromConfDir(wtsclwq::EnvMgr::GetInstance()->GetConfigPath());
+  wtsclwq::ConfigMgr::GetInstance()->LoadFromConfDir(wtsclwq::EnvMgr::GetInstance()->GetConfigPath());
   LOG_INFO(root_logger) << root_logger->FlushConfigToYmal() << "\n";
   LOG_FATAL(root_logger) << "root logger fatal";
   LOG_ERROR(root_logger) << "root logger error";
