@@ -8,5 +8,7 @@
 #include "lock.h"
 #include "thread.h"
 #include "singleton.h"
+#include "macro.h"
+#include "coroutine.h"
 
 #endif // _WTSCLWQ_SERVER_
