@@ -44,8 +44,7 @@ Coroutine::Coroutine() {
   ++system_coroutine_count;
   // 初始化context_t对象，用来swapcontext(见man swapcontext)
   if (getcontext(&context_) != 0) {
-    LOG_ERROR(sys_logger) << "getcontext failed";
-    throw std::runtime_error("getcontext failed");
+    ASSERT(false);
   }
   LOG_DEBUG(sys_logger) << "Coroutine " << id_ << " created";
 }
@@ -57,16 +56,14 @@ Coroutine::Coroutine(std::function<void()> task, uint32_t stack_size, bool has_p
       parent_(parent),
       has_parent_(has_parent) {
   ++system_coroutine_count;
-  stack_ = StackAlloctor::Alloc(stack_size_);
+  stack_ = StackAlloctor::Alloc(128 * 1024);
 
   if (stack_ == nullptr) {
-    LOG_ERROR(sys_logger) << "alloc stack failed";
-    throw std::runtime_error("alloc stack failed");
+    ASSERT(false);
   }
 
   if (getcontext(&context_) == -1) {
-    LOG_ERROR(sys_logger) << "getcontext failed";
-    throw std::runtime_error("getcontext failed");
+    ASSERT(false);
   }
 
   context_.uc_stack.ss_sp = stack_;         // 栈指针 sp
@@ -85,9 +82,10 @@ Coroutine::~Coroutine() {
   } else {
     // stack_为空，说明this是一个主协程
     ASSERT(state_ == State::Running);  // 主协程销毁时，必然处于运行状态·
-    ASSERT(task_func_ == nullptr);          // 主协程没有task_
+    ASSERT(task_func_ == nullptr);     // 主协程没有task_
     Coroutine *curr = thread_running_coroutine.get();
     if (curr == this) {
+      LOG_DEBUG(sys_logger) << "Coroutine " << id_ << " is main coroutine, set thread_running_coroutine to nullptr";
       SetThreadRunningCoroutine(
           nullptr);  // 将当前线程中正在执行的协程置空, 表示线程已经没有协程在执行了（退出协程模式）
     }
@@ -97,8 +95,7 @@ Coroutine::~Coroutine() {
 }
 
 void Coroutine::ResetTaskFunc(std::function<void()> new_task_func) {
-  ASSERT(state_ == State::Stop);  // 简化状态管理，只有Stop状态的协程才能被重置，正常实现的话，会有Init状态，也能被重置
-  ASSERT(stack_ != nullptr);      // 只有子协程才能被重置
+  ASSERT(stack_ != nullptr);  // 只有子协程才能被重置
 
   task_func_ = std::move(new_task_func);
   if (getcontext(&context_) == -1) {
@@ -120,13 +117,12 @@ void Coroutine::Resume() {
   SetThreadRunningCoroutine(this->shared_from_this());  // 将当前线程中正在执行的协程置为this
 
   state_ = State::Running;
-
   ASSERT(has_parent_);
   auto parent_ptr = parent_.lock();
   Coroutine *raw_ptr = parent_ptr.get();
   ASSERT(parent_ptr != nullptr);
   parent_ptr.reset();
-  if (swapcontext(&raw_ptr->context_, &context_) == -1) {
+  if (swapcontext(&(raw_ptr->context_), &context_) == -1) {
     ASSERT(false);
   }
 }
@@ -142,7 +138,7 @@ void Coroutine::Yield() {
   ASSERT(parent_ptr != nullptr);
   SetThreadRunningCoroutine(parent_ptr);
   parent_ptr.reset();
-  if (swapcontext(&context_, &raw_ptr->context_) == -1) {
+  if (swapcontext(&context_, &(raw_ptr->context_)) == -1) {
     ASSERT(false);
   }
 }
@@ -150,6 +146,11 @@ void Coroutine::Yield() {
 auto Coroutine::GetId() const -> uint64_t { return id_; }
 
 auto Coroutine::GetState() const -> State { return state_; }
+
+void Coroutine::SetParentCoroutine(std::weak_ptr<Coroutine> parent) {
+  parent_ = std::move(parent);
+  has_parent_ = true;
+}
 
 void Coroutine::InitThreadToCoMod() {
   if (thread_main_coroutine == nullptr) {
@@ -175,6 +176,7 @@ void Coroutine::MainFunc() {
 
   Coroutine *raw_ptr = curr.get();
   curr.reset();
+  LOG_DEBUG(sys_logger) << "Coroutine " << raw_ptr->id_ << " MainFunc() end";
   raw_ptr->Yield();
 }
 }  // namespace wtsclwq

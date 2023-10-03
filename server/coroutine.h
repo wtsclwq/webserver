@@ -60,6 +60,11 @@ class Coroutine : public std::enable_shared_from_this<Coroutine> {
   auto GetState() const -> State;
 
   /**
+   * @brief 设置父协程
+   */
+  void SetParentCoroutine(std::weak_ptr<Coroutine> parent);
+
+  /**
    * @brief 将当前线程设置为协程模式
    */
   static void InitThreadToCoMod();

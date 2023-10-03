@@ -1,9 +1,8 @@
+#include <functional>
 #include <memory>
 #include "server/coroutine.h"
-#include "server/log.h"
 #include "server/scheduler.h"
 #include "server/server.h"
-#include "server/utils.h"
 
 static auto root_logger = ROOT_LOGGER;
 
@@ -54,7 +53,8 @@ void TestCoroutine4() {
 void TestCoroutine5() {
   LOG_INFO(root_logger) << "TestCoroutine5 start";
   for (int i = 0; i < 3; i++) {
-    wtsclwq::Scheduler::GetThreadScheduler()->Schedule([]() { TestCoroutine1(); }, wtsclwq::GetCurrSysThreadId());
+    wtsclwq::Scheduler::GetThreadScheduler()->Schedule(std::function<void()>(TestCoroutine4),
+                                                       wtsclwq::GetCurrSysThreadId());
   }
   LOG_INFO(root_logger) << "TestCoroutine5 end";
 }
@@ -64,25 +64,41 @@ auto main() -> int {
 
   // 创建调度器，默认状态下使用创建者线程，相当于先用Schedule()攒下一波协程，然后用Stop()切换到调度器的run方法将这些协程
   // 消耗掉，然后再返回main函数往下执行
-  wtsclwq::Scheduler sc{};
+  auto sc = std::make_shared<wtsclwq::Scheduler>(3, false, "TestScheduler");
 
-  sc.Schedule(&TestCoroutine1);
-  sc.Schedule(&TestCoroutine2);
+  sc->Schedule(std::function<void()>(TestCoroutine1), wtsclwq::GetCurrSysThreadId());
+  sc->Schedule(std::function<void()>(TestCoroutine2), wtsclwq::GetCurrSysThreadId());
 
   auto co = std::make_shared<wtsclwq::Coroutine>(TestCoroutine3);
-  sc.Schedule(co);
+
+  sc->Schedule(co);
 
   // 创建调度线程，开始任务调度，如果只使用main函数线程进行调度，那start相当于什么也没做
-  sc.Start();
+  sc->Start();
 
   /**
    * 只要调度器未停止，就可以添加调度任务
    * 包括在子协程中也可以通过sylar::Scheduler::GetThis()->scheduler()的方式继续添加调度任务
    */
-  sc.Schedule(&TestCoroutine4);
+  sc->Schedule(std::function<void()>(TestCoroutine4));
+  sc->Schedule(std::function<void()>(TestCoroutine4));
+  sc->Schedule(std::function<void()>(TestCoroutine4));
+  sc->Schedule(std::function<void()>(TestCoroutine4));
+  sc->Schedule(std::function<void()>(TestCoroutine4));
+  sc->Schedule(std::function<void()>(TestCoroutine4));
+  sc->Schedule(std::function<void()>(TestCoroutine4));
+  sc->Schedule(std::function<void()>(TestCoroutine4));
+  sc->Schedule(std::function<void()>(TestCoroutine4));
+  sc->Schedule(std::function<void()>(TestCoroutine4));
+  sc->Schedule(std::function<void()>(TestCoroutine4));
+  sc->Schedule(std::function<void()>(TestCoroutine4));
+  sc->Schedule(std::function<void()>(TestCoroutine4));
+  sc->Schedule(std::function<void()>(TestCoroutine4));
+  sc->Schedule(std::function<void()>(TestCoroutine4));
+  sc->Schedule(std::function<void()>(TestCoroutine4));
 
   // 通过Schedule()添加的任务会在调度器停止之前执行完毕
-  sc.Stop();
+  sc->Stop();
 
   LOG_INFO(root_logger) << "main end";
   return 0;

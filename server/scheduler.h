@@ -16,7 +16,7 @@ class Scheduler : public std::enable_shared_from_this<Scheduler> {
   using s_ptr = std::shared_ptr<Scheduler>;
   using MutexType = std::mutex;
 
-  explicit Scheduler(size_t thread_num = 1, bool use_creator = true, std::string_view name = "Scheduler");
+  explicit Scheduler(size_t thread_num = 1, bool use_creator = true, std::string_view name = "DefaultScheduler");
 
   virtual ~Scheduler();
 

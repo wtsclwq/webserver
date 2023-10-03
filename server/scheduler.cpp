@@ -27,7 +27,6 @@ Scheduler::Scheduler(size_t thread_num, bool use_creator, std::string_view name)
 
     // 设置创建者线程内的调度器
     ASSERT(GetThreadScheduler() == nullptr);
-    thread_scheduler = this->shared_from_this();
 
     // 将创建者线程设置为协程模式
     Coroutine::InitThreadToCoMod();
@@ -45,9 +44,6 @@ Scheduler::Scheduler(size_t thread_num, bool use_creator, std::string_view name)
 Scheduler::~Scheduler() {
   LOG_DEBUG(sys_logger) << "Scheduler " << name_ << " is destroyed";
   ASSERT(is_stoped_);
-  if (GetThreadScheduler().get() == this) {
-    thread_scheduler = nullptr;
-  }
 }
 
 auto Scheduler::GetName() -> std::string { return name_; }
@@ -107,7 +103,7 @@ auto Scheduler::IsStopable() -> bool {
 void Scheduler::Tickle() { LOG_DEBUG(sys_logger) << "Scheduler " << name_ << " is tickling"; }
 
 void Scheduler::Idle() {
-  LOG_DEBUG(sys_logger) << "Thread" << GetCurrSysThreadId() << " is idling";
+  LOG_DEBUG(sys_logger) << "Thread " << GetCurrSysThreadId() << " is idling";
   while (!IsStopable()) {
     // 退出Idle协程
     Coroutine::GetThreadRunningCoroutine()->Yield();
@@ -120,15 +116,6 @@ void Scheduler::Stop() {
     return;
   }
   is_stoped_ = true;
-
-  // 如果调度器的创建者线程也参与了调度，那么创建者线程调用Stop时，线程内的调度器必然等于this
-  if (use_creator_thread_) {
-    ASSERT(GetThreadScheduler().get() == this);
-  } else {
-    // 如果创建者线程不参与调度，那么创建者线程内的调度器应该为null，必然不等于this
-    ASSERT(GetThreadScheduler().get() != this);
-    ASSERT(GetThreadScheduler() == nullptr);
-  }
 
   // 全都唤醒一次，让所有线程都从Idle中退出
   for (size_t i = 0; i < thread_count_; i++) {
@@ -151,7 +138,7 @@ void Scheduler::Stop() {
 }
 
 void Scheduler::Run() {
-  LOG_DEBUG(sys_logger) << "Thread" << GetCurrSysThreadId() << " is running";
+  LOG_DEBUG(sys_logger) << "Thread " << GetCurrSysThreadId() << " is running";
   InitThreadScheduler();
 
   // 如果当前线程不是调度器创建者线程，也就是说当前线程是线程池中的线程，那么需要先为其启动协程模式
@@ -163,10 +150,9 @@ void Scheduler::Run() {
   thread_schedule_coroutine = Coroutine::GetThreadRunningCoroutine();
 
   // 创建一个Idle协程，用于线程从Run进入Idle
-  auto idle_coroutine =
-      std::make_shared<Coroutine>([this] { Idle(); }, 0, true, Coroutine::GetThreadRunningCoroutine());
+  auto idle_coroutine = std::make_shared<Coroutine>([this] { Idle(); }, 0, true, GetThreadScheduleCoroutine());
   // 任务协程，用于取到func任务之后，将func封装进该协程，然后Resume该协程
-  auto func_task_coroutine = std::make_shared<Coroutine>(nullptr, 0, true, Coroutine::GetThreadRunningCoroutine());
+  Coroutine::s_ptr func_task_coroutine = nullptr;
   // 存储取到的任务
   ScheduleTask task{};
 
@@ -208,11 +194,12 @@ void Scheduler::Run() {
 
     if (task.coroutine_ != nullptr) {
       // 如果任务本身就是一个协程任务，那么直接Resume，当Resume返回时，协程已经执行完毕或者被Yield
+      task.coroutine_->SetParentCoroutine(GetThreadScheduleCoroutine());
       ++active_thread_count_;
       task.coroutine_->Resume();
       --active_thread_count_;
     } else if (task.func_ != nullptr) {
-      func_task_coroutine->ResetTaskFunc(task.func_);
+      func_task_coroutine.reset(new Coroutine(std::move(task.func_), 0, true, GetThreadScheduleCoroutine()));
       // 执行封装之后的func_task_coroutine
       ++active_thread_count_;
       func_task_coroutine->Resume();
