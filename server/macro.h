@@ -1,5 +1,6 @@
 #include "log.h"
-#include "server/utils.h"
+#include "utils.h"
+#include <cassert>
 
 #define ASSERT(x)                                                                                                    \
   if (!(x)) {                                                                                                        \

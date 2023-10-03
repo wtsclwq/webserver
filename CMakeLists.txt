@@ -35,6 +35,7 @@ set(LIB_SRC
     server/thread.cpp 
     server/lock.cpp
     server/coroutine.cpp
+    server/scheduler.cpp
     )
     
 add_link_options("-rdynamic")
@@ -50,6 +51,7 @@ wtsclwq_add_executable(test_thread "test/test_thread.cpp" server "${LIBS}")
 wtsclwq_add_executable(test_log "test/test_log.cpp" server "${LIBS}")
 wtsclwq_add_executable(test_utils "test/test_utils.cpp" server "${LIBS}")
 wtsclwq_add_executable(test_coroutine "test/test_coroutine.cpp" server "${LIBS}")
+wtsclwq_add_executable(test_scheduler "test/test_scheduler.cpp" server "${LIBS}")
 endif()
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)

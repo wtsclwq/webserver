@@ -53,7 +53,7 @@ Coroutine::Coroutine() {
 Coroutine::Coroutine(std::function<void()> task, uint32_t stack_size, bool has_parent, const s_ptr &parent)
     : id_(next_coroutine_id++),
       stack_size_(stack_size == 0 ? coroutine_stack_size->GetValue() : stack_size),
-      task_(std::move(task)),
+      task_func_(std::move(task)),
       parent_(parent),
       has_parent_(has_parent) {
   ++system_coroutine_count;
@@ -85,7 +85,7 @@ Coroutine::~Coroutine() {
   } else {
     // stack_为空，说明this是一个主协程
     ASSERT(state_ == State::Running);  // 主协程销毁时，必然处于运行状态·
-    ASSERT(task_ == nullptr);          // 主协程没有task_
+    ASSERT(task_func_ == nullptr);          // 主协程没有task_
     Coroutine *curr = thread_running_coroutine.get();
     if (curr == this) {
       SetThreadRunningCoroutine(
@@ -96,11 +96,11 @@ Coroutine::~Coroutine() {
   LOG_DEBUG(sys_logger) << "Coroutine " << id_ << " destroyed";
 }
 
-void Coroutine::Reset(std::function<void()> new_task) {
+void Coroutine::ResetTaskFunc(std::function<void()> new_task_func) {
   ASSERT(state_ == State::Stop);  // 简化状态管理，只有Stop状态的协程才能被重置，正常实现的话，会有Init状态，也能被重置
   ASSERT(stack_ != nullptr);      // 只有子协程才能被重置
 
-  task_ = std::move(new_task);
+  task_func_ = std::move(new_task_func);
   if (getcontext(&context_) == -1) {
     LOG_ERROR(sys_logger) << "getcontext failed";
     ASSERT(false);
@@ -162,14 +162,16 @@ void Coroutine::SetThreadRunningCoroutine(Coroutine::s_ptr curr) { thread_runnin
 
 auto Coroutine::GetThreadRunningCoroutine() -> s_ptr { return thread_running_coroutine; }
 
+auto Coroutine::GetThreadMainCoroutine() -> s_ptr { return thread_main_coroutine; }
+
 void Coroutine::MainFunc() {
   Coroutine::s_ptr curr = GetThreadRunningCoroutine();  // 获取当前线程中正在执行的协程
   ASSERT(curr != nullptr);
-  ASSERT(curr->task_ != nullptr);
+  ASSERT(curr->task_func_ != nullptr);
 
-  curr->task_();  // 执行协程的具体任务
+  curr->task_func_();  // 执行协程的具体任务
   curr->state_ = State::Stop;
-  curr->task_ = nullptr;
+  curr->task_func_ = nullptr;
 
   Coroutine *raw_ptr = curr.get();
   curr.reset();

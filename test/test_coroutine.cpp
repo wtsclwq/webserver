@@ -58,7 +58,7 @@ void TestCoroutine() {
 
   LOG_INFO(root_logger) << "State: " << static_cast<int>(co1->GetState());
 
-  co1->Reset(RuInCoroutine2);
+  co1->ResetTaskFunc(RuInCoroutine2);
 
   co1->Resume();
   

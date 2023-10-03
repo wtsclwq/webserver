@@ -25,7 +25,7 @@ class Coroutine : public std::enable_shared_from_this<Coroutine> {
    * @param stack_size 协程栈大小
    * @param if_run_in_scheduler 构造函数所在线程是否参与协程调度
    */
-  Coroutine(std::function<void()> task, uint32_t stack_size, bool has_parent, const s_ptr &parent);
+  explicit Coroutine(std::function<void()> task_func, uint32_t stack_size = 0, bool has_parent = false, const s_ptr &parent = nullptr);
 
   ~Coroutine();
 
@@ -33,7 +33,7 @@ class Coroutine : public std::enable_shared_from_this<Coroutine> {
    * @brief 更新协程的具体任务，达到复用协程对象的目的
    * @param new_task
    */
-  void Reset(std::function<void()> new_task);
+  void ResetTaskFunc(std::function<void()> new_task_func);
 
   /**
    * @brief 将this协程切换到运行状态
@@ -71,9 +71,16 @@ class Coroutine : public std::enable_shared_from_this<Coroutine> {
   static void SetThreadRunningCoroutine(Coroutine::s_ptr curr);
 
   /**
-   * @brief 获取线程局部变量，也就是线程中正在执行的协程
+   * @brief 获取当前线程正在执行的协程
    */
   static auto GetThreadRunningCoroutine() -> s_ptr;
+
+  /**
+   * @brief 获取当前线程的主协程
+   *
+   * @return s_ptr
+   */
+  static auto GetThreadMainCoroutine() -> s_ptr;
 
   /**
    * @brief 获取所有协程的数量
@@ -95,14 +102,14 @@ class Coroutine : public std::enable_shared_from_this<Coroutine> {
    * 表明调用该构造函数的线程进入协程模式
    */
   Coroutine();
-  uint64_t id_{0};                       // 协程的id
-  uint32_t stack_size_{0};               // 协程栈大小
-  ucontext_t context_{};                 // 协程上下文
-  State state_{State::Ready};            // 协程状态
-  void *stack_{nullptr};                 // 协程栈
-  std::function<void()> task_{nullptr};  // 协程要执行的具体任务
-  std::weak_ptr<Coroutine> parent_;      // 父协程
-  bool has_parent_{false};               // 是否有父协程
+  uint64_t id_{0};                            // 协程的id
+  uint32_t stack_size_{0};                    // 协程栈大小
+  ucontext_t context_{};                      // 协程上下文
+  State state_{State::Ready};                 // 协程状态
+  void *stack_{nullptr};                      // 协程栈
+  std::function<void()> task_func_{nullptr};  // 协程要执行的具体任务
+  std::weak_ptr<Coroutine> parent_;           // 父协程
+  bool has_parent_{false};                    // 是否有父协程
 };
 }  // namespace wtsclwq
 
