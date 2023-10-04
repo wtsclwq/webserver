@@ -43,7 +43,7 @@ class Scheduler : public std::enable_shared_from_this<Scheduler> {
   /**
    * @brief 启动调度器
    */
-  void Start();
+  virtual void Start();
 
   /**
    * @brief 停止调度器，需要等待所有任务执行完毕

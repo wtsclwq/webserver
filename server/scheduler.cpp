@@ -55,6 +55,8 @@ void Scheduler::InitThreadScheduler() {
   thread_scheduler = this->shared_from_this();
 }
 
+auto Scheduler::HasIdleThread() -> bool { return idle_thread_count_ > 0; }
+
 auto Scheduler::GetThreadScheduleCoroutine() -> Coroutine::s_ptr { return thread_schedule_coroutine; }
 
 template <typename Scheduleable>

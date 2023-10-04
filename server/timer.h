@@ -6,6 +6,7 @@
 #include <memory>
 #include <set>
 #include <shared_mutex>
+#include <vector>
 namespace wtsclwq {
 class TimerManager;
 class Timer : public std::enable_shared_from_this<Timer> {
@@ -43,19 +44,54 @@ class Timer : public std::enable_shared_from_this<Timer> {
   std::weak_ptr<TimerManager> manager_{};  // 所属定时器管理器
 };
 
-class TimerManager {
+class TimerManager : public std::enable_shared_from_this<TimerManager> {
   friend class Timer;
 
  public:
   using s_ptr = std::shared_ptr<TimerManager>;
   using MutexType = std::shared_mutex;
 
-  
-private:
+  TimerManager();
+
+  virtual ~TimerManager();
+
+  /**
+   * @brief 添加定时器任务
+   * @param interval_time 间隔时间
+   * @param func 回调
+   * @param recurring 是否循环
+   */
+  auto AddTimer(uint64_t interval_time, std::function<void()> func, bool recurring = false) -> Timer::s_ptr;
+
+  auto AddConditionTimer(uint64_t interval_time, const std::function<void()> &func, const std::function<bool()> &cond,
+                         bool recurring = false) -> Timer::s_ptr;
+  /**
+   * @brief 获取最近距离最近一个定时器触发的时间
+   */
+  auto GetRecentTriggerTime() -> uint64_t;
+
+  /**
+   * @brief 获取当前时间所有需要触发的定时器回调
+   */
+  auto GetAllTriggeringTimerFuncs() -> std::vector<std::function<void()>>;
+
+  /**
+   * @brief 定时器列表是否为空
+   */
+  auto Empty() -> bool;
+
+ protected:
+  /**
+   * @brief 当有新的定时器，插入到队列头部（需要最早触发）时，唤醒空闲线程
+   */
+  virtual void OnNewTimerAtFront() = 0;
+
+ private:
+
   // 定时器队列
   std::set<Timer::s_ptr, std::function<bool(Timer::s_ptr, Timer::s_ptr)>> timer_quque_{};
   // 是否需要唤醒空闲线程
-  bool need_to_tickle_{false};
+  bool recently_tickled_{false};
   // 上次执行时间
   uint64_t previouse_trigger_time_{0};
   // 互斥锁
