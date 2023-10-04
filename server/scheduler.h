@@ -57,12 +57,12 @@ class Scheduler : public std::enable_shared_from_this<Scheduler> {
   virtual void Tickle();
 
   /**
-   * @brief 调度器主逻辑，线程池中的线程会在这里取得任务并执行
+   * @brief 线程调度任务的主逻辑，线程池中的线程会在这里取得任务并执行
    */
   void Run();
 
   /**
-   * @brief 空闲线程的主逻辑，空闲线程会在这里等待任务
+   * @brief 线程空闲等待的主逻辑，线程池中的空闲线程会在这里等待任务队列就绪
    */
   virtual void Idle();
 

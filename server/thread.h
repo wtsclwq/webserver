@@ -2,6 +2,7 @@
 #define _WTSCLWQ_THREAD_
 
 #include <functional>
+#include <memory>
 #include <string>
 #include <string_view>
 #include "lock.h"

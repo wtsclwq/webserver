@@ -56,7 +56,7 @@ Coroutine::Coroutine(std::function<void()> task, uint32_t stack_size, bool has_p
       parent_(parent),
       has_parent_(has_parent) {
   ++system_coroutine_count;
-  stack_ = StackAlloctor::Alloc(128 * 1024);
+  stack_ = StackAlloctor::Alloc(stack_size_);
 
   if (stack_ == nullptr) {
     ASSERT(false);

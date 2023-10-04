@@ -66,8 +66,8 @@ auto main() -> int {
   // 消耗掉，然后再返回main函数往下执行
   auto sc = std::make_shared<wtsclwq::Scheduler>(3, false, "TestScheduler");
 
-  sc->Schedule(std::function<void()>(TestCoroutine1), wtsclwq::GetCurrSysThreadId());
-  sc->Schedule(std::function<void()>(TestCoroutine2), wtsclwq::GetCurrSysThreadId());
+  sc->Schedule(std::function<void()>(TestCoroutine1));
+  sc->Schedule(std::function<void()>(TestCoroutine2));
 
   auto co = std::make_shared<wtsclwq::Coroutine>(TestCoroutine3);
 
