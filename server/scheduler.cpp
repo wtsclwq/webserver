@@ -12,32 +12,19 @@ namespace wtsclwq {
 static auto sys_logger = NAMED_LOGGER("system");
 
 // 当前线程的调度器
-static thread_local Scheduler::s_ptr thread_scheduler = nullptr;
+static Scheduler::s_ptr thread_scheduler = nullptr;
 
 // 当前线程的调度协程，对于线程池中的线程来说，调度协程==主协程， 对于creator线程来说，调度协程 != 主协程
-static thread_local Coroutine::s_ptr thread_schedule_coroutine = nullptr;
+static Coroutine::s_ptr thread_schedule_coroutine = nullptr;
 
 Scheduler::Scheduler(size_t thread_num, bool use_creator, std::string_view name)
     : name_(name), use_creator_thread_(use_creator) {
   ASSERT(thread_num > 0);
   if (use_creator_thread_) {
     thread_num--;
-    // 设置creator线程名称
-    Thread::SetCurrName(name_);
-
-    // 设置创建者线程内的调度器
-    ASSERT(GetThreadScheduler() == nullptr);
-
-    // 将创建者线程设置为协程模式
-    Coroutine::InitThreadToCoMod();
-    creator_schedule_coroutine_ =
-        std::make_shared<Coroutine>([this] { Run(); }, 0, true, Coroutine::GetThreadMainCoroutine());
-    creator_thread_id_ = GetCurrSysThreadId();
-    thread_ids_.emplace_back(creator_thread_id_);
   } else {
     creator_thread_id_ = -1;
   }
-
   thread_count_ = thread_num;
 }
 
@@ -52,6 +39,7 @@ auto Scheduler::GetThreadScheduler() -> s_ptr { return thread_scheduler; }
 
 void Scheduler::InitThreadScheduler() {
   ASSERT(thread_scheduler == nullptr);
+  LOG_DEBUG(sys_logger) << this->name_ << "  " << this->thread_count_;
   thread_scheduler = this->shared_from_this();
 }
 
@@ -88,6 +76,22 @@ void Scheduler::Start() {
     LOG_ERROR(sys_logger) << "Scheduler " << name_ << " is already stoped";
     return;
   }
+
+  if (use_creator_thread_) {
+    // 设置creator线程名称
+    Thread::SetCurrName(name_);
+
+    // 设置创建者线程内的调度器
+    ASSERT(GetThreadScheduler() == nullptr);
+
+    // 将创建者线程设置为协程模式
+    Coroutine::InitThreadToCoMod();
+    creator_schedule_coroutine_ =
+        std::make_shared<Coroutine>([this] { Run(); }, 0, true, Coroutine::GetThreadMainCoroutine());
+    creator_thread_id_ = GetCurrSysThreadId();
+    thread_ids_.emplace_back(creator_thread_id_);
+  }
+
   ASSERT(thread_pool_.empty());
   thread_pool_.reserve(thread_count_);
   for (size_t i = 0; i < thread_count_; i++) {

@@ -93,7 +93,7 @@ auto Timer::Reset(uint64_t new_interval_time, bool from_now) -> bool {
   // 该标志位会在每次取出头部定时器时重置为false，这样就可以避免频繁唤醒
   bool need_tickle = at_front && (!manager_ptr->recently_tickled_);
   if (need_tickle) {
-    manager_ptr->OnTimerTrigger();
+    manager_ptr->OnNewTimerAtFront();
     manager_ptr->recently_tickled_ = true;
   }
   return true;
@@ -127,14 +127,13 @@ TimerManager::~TimerManager() = default;
 
 auto TimerManager::AddTimer(uint64_t interval_time, std::function<void()> func, bool recurring) -> Timer::s_ptr {
   std::lock_guard<MutexType> lock(mutex_);
-
-  auto new_timer = std::make_shared<Timer>(interval_time, recurring, std::move(func), shared_from_this());
+  Timer::s_ptr new_timer(new Timer(interval_time, recurring, std::move(func), shared_from_this()));
   auto ret_it = timer_quque_.insert(new_timer).first;
 
   bool at_front = (ret_it == timer_quque_.begin());
   bool need_tickle = at_front && (!recently_tickled_);
   if (need_tickle) {
-    OnTimerTrigger();
+    OnNewTimerAtFront();
     recently_tickled_ = true;
   }
   return new_timer;
@@ -195,8 +194,7 @@ auto TimerManager::GetAllTriggeringTimerFuncs() -> std::vector<std::function<voi
   }
 
   // 触发时间为当前时间的定时器
-  auto curr_timer = std::make_shared<Timer>(curr_time);
-
+  Timer::s_ptr curr_timer(new Timer(curr_time));
   // 利用当前时间找到所有需要触发的定时器，但是由于这里查找的是lower_bound，需要继续向后查找，避免错过触发时间相同的定时器
   auto target_it = timer_quque_.lower_bound(curr_timer);
   while (target_it != timer_quque_.end() && (*target_it)->next_time_ == curr_time) {

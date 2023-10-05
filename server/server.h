@@ -11,5 +11,8 @@
 #include "singleton.h"
 #include "thread.h"
 #include "utils.h"
+#include "fd_context.h"
+#include "sock_io_scheduler.h"
+#include "timer.h"
 
 #endif  // _WTSCLWQ_SERVER_

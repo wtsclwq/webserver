@@ -6,17 +6,16 @@
 #include <mutex>
 #include <shared_mutex>
 #include "coroutine.h"
+#include "fd_context.h"
 #include "lock.h"
 #include "scheduler.h"
 #include "timer.h"
-#include "fd_context.h"
 
 namespace wtsclwq {
-class SockIoScheduler : public Scheduler, public TimerManager {
+class SockIoScheduler : public Scheduler, public TimerManager, public std::enable_shared_from_this<SockIoScheduler> {
  public:
   using s_ptr = std::shared_ptr<SockIoScheduler>;
   using MutexType = std::shared_mutex;
-
 
   /**
    * @brief 构造函数
@@ -43,7 +42,8 @@ class SockIoScheduler : public Scheduler, public TimerManager {
    * @param cb_func 事件回调函数，如果为空则默认将注册时线程的上下文封装成协程，表示事件发生时继续执行注册时的逻辑
    * @return bool 是否注册成功
    */
-  auto AddEventListening(int target_fd, FileDescContext::EventType target_event_type, std::function<void()> cb_func = nullptr) -> bool;
+  auto AddEventListening(int target_fd, FileDescContext::EventType target_event_type,
+                         std::function<void()> cb_func = nullptr) -> bool;
 
   /**
    * @brief 从调度器中移除一个fd上的某一个事件的监听任务

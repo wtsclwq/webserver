@@ -9,7 +9,7 @@
 namespace wtsclwq {
 struct FileDescContext {
   enum EventType {
-    None = 0x1,   // 无事件
+    None = 0x0,   // 无事件
     Read = 0x1,   // 读时间（EPOLILIN）
     Write = 0x4,  // 写事件（EPOLLOUT）
   };
@@ -25,6 +25,7 @@ struct FileDescContext {
     std::weak_ptr<Scheduler> scheduler_{};  // 事件回调的调度器
     Coroutine::s_ptr coroutine_{nullptr};   // 事件回调协程
     std::function<void()> func_;            // 事件回调函数
+    void Reset();
   };
 
   /**
