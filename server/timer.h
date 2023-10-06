@@ -80,18 +80,16 @@ class TimerManager : public std::enable_shared_from_this<TimerManager> {
    */
   auto Empty() -> bool;
 
- protected:
-  /**
-   * @brief 当有新的定时器，插入到队列头部（需要最早触发）时，唤醒空闲线程
-   */
-  virtual void OnNewTimerAtFront() = 0;
+  auto NeedTickle() -> bool;
+
+  void SetTickled();
 
  private:
-
   // 定时器队列
   std::set<Timer::s_ptr, std::function<bool(Timer::s_ptr, Timer::s_ptr)>> timer_quque_{};
   // 是否需要唤醒空闲线程
   bool recently_tickled_{false};
+  bool has_new_front_timer_{false};
   // 上次执行时间
   uint64_t previouse_trigger_time_{0};
   // 互斥锁

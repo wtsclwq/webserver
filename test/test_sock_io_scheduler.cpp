@@ -10,6 +10,7 @@
 #include <memory>
 #include "server/fd_context.h"
 #include "server/log.h"
+#include "server/scheduler.h"
 #include "server/server.h"
 #include "server/sock_io_scheduler.h"
 
@@ -47,6 +48,7 @@ void DoIoRead() {
     close(sock_fd);
     return;
   }
+  wtsclwq::SockIoScheduler::GetThreadSockIoScheduler()->Schedule(std::function<void()>(WatchIoRead));
 }
 
 void WatchIoRead() {
@@ -62,8 +64,8 @@ void TestIo() {
 
   sockaddr_in serve_addr{};
   serve_addr.sin_family = AF_INET;
-  serve_addr.sin_port = htons(1234);
-  inet_pton(AF_INET, "110.242.68.66", &serve_addr.sin_addr.s_addr);
+  serve_addr.sin_port = htons(9001);
+  inet_pton(AF_INET, "127.0.0.1", &serve_addr.sin_addr.s_addr);
 
   int ret = connect(sock_fd, reinterpret_cast<sockaddr *>(&serve_addr), sizeof(serve_addr));
   if (ret != 0) {
@@ -85,13 +87,11 @@ void TestIo() {
   }
 }
 
-void TestSockIoScheduler() {
-  auto sock_io_sc = std::make_shared<wtsclwq::SockIoScheduler>();
-  sock_io_sc->Start();
-  sock_io_sc->Schedule(std::function<void()>(TestSockIoScheduler));
-}
 
 auto main() -> int {
-  TestSockIoScheduler();
+  auto sock_io_sc = std::make_shared<wtsclwq::SockIoScheduler>(1, true, "xxx");
+  sock_io_sc->Start();
+  sock_io_sc->Schedule(std::function<void()>(TestIo));
+  sock_io_sc->Stop();
   return 0;
 }

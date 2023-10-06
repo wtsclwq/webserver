@@ -17,6 +17,7 @@ struct FileDescContext {
   using s_ptr = std::shared_ptr<FileDescContext>;
   using MutexType = SpinLock;
 
+  FileDescContext();
   /**
    * @brief 事件上下文，用来存储io事件回调以及执行回调的调度器
    */

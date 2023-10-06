@@ -12,10 +12,10 @@ namespace wtsclwq {
 static auto sys_logger = NAMED_LOGGER("system");
 
 // 当前线程的调度器
-static Scheduler::s_ptr thread_scheduler = nullptr;
+static thread_local Scheduler::s_ptr thread_scheduler = nullptr;
 
 // 当前线程的调度协程，对于线程池中的线程来说，调度协程==主协程， 对于creator线程来说，调度协程 != 主协程
-static Coroutine::s_ptr thread_schedule_coroutine = nullptr;
+static thread_local Coroutine::s_ptr thread_schedule_coroutine = nullptr;
 
 Scheduler::Scheduler(size_t thread_num, bool use_creator, std::string_view name)
     : name_(name), use_creator_thread_(use_creator) {
@@ -39,7 +39,6 @@ auto Scheduler::GetThreadScheduler() -> s_ptr { return thread_scheduler; }
 
 void Scheduler::InitThreadScheduler() {
   ASSERT(thread_scheduler == nullptr);
-  LOG_DEBUG(sys_logger) << this->name_ << "  " << this->thread_count_;
   thread_scheduler = this->shared_from_this();
 }
 
@@ -76,7 +75,6 @@ void Scheduler::Start() {
     LOG_ERROR(sys_logger) << "Scheduler " << name_ << " is already stoped";
     return;
   }
-
   if (use_creator_thread_) {
     // 设置creator线程名称
     Thread::SetCurrName(name_);

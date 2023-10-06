@@ -2,6 +2,12 @@
 #include "macro.h"
 
 namespace wtsclwq {
+
+FileDescContext::FileDescContext() {
+  read_event_ctx_ = std::make_shared<EventContext>();
+  write_event_ctx_ = std::make_shared<EventContext>();
+}
+
 auto FileDescContext::GetEventContext(EventType event_type) -> FileDescContext::EventContext::s_ptr {
   switch (event_type) {
     case EventType::Read:
@@ -28,6 +34,7 @@ void FileDescContext::TriggerEvent(EventType event_type) {
   if (scheduler == nullptr) {
     return;
   }
+  registered_event_types_ = static_cast<EventType>(registered_event_types_ & (~event_type));
   if (target_ctx->func_ != nullptr) {
     scheduler->Schedule(target_ctx->func_);
   } else {

@@ -85,17 +85,7 @@ auto Timer::Reset(uint64_t new_interval_time, bool from_now) -> bool {
 
   // 重新插入定时器队列
   auto ret_it = manager_ptr->timer_quque_.insert(shared_from_this()).first;
-  bool at_front = (ret_it == manager_ptr->timer_quque_.begin());
-
-  // 如果插入之后在队列头部，需要手动唤醒一下其他空闲线程，避免错过，
-  // 因为空闲线程可能已经根据之前的头部定时器计算好了下次唤醒时间
-  // 但是在频繁插入的情况下，会有频繁唤醒的问题，因此设置一个标志位recently_tickled
-  // 该标志位会在每次取出头部定时器时重置为false，这样就可以避免频繁唤醒
-  bool need_tickle = at_front && (!manager_ptr->recently_tickled_);
-  if (need_tickle) {
-    manager_ptr->OnNewTimerAtFront();
-    manager_ptr->recently_tickled_ = true;
-  }
+  manager_ptr->has_new_front_timer_ = (ret_it == manager_ptr->timer_quque_.begin());
   return true;
 }
 
@@ -130,12 +120,7 @@ auto TimerManager::AddTimer(uint64_t interval_time, std::function<void()> func, 
   Timer::s_ptr new_timer(new Timer(interval_time, recurring, std::move(func), shared_from_this()));
   auto ret_it = timer_quque_.insert(new_timer).first;
 
-  bool at_front = (ret_it == timer_quque_.begin());
-  bool need_tickle = at_front && (!recently_tickled_);
-  if (need_tickle) {
-    OnNewTimerAtFront();
-    recently_tickled_ = true;
-  }
+  has_new_front_timer_ = (ret_it == timer_quque_.begin());
   return new_timer;
 }
 
@@ -154,8 +139,6 @@ auto TimerManager::AddConditionTimer(uint64_t interval_time, const std::function
 
 auto TimerManager::GetRecentTriggerTime() -> uint64_t {
   std::shared_lock<MutexType> lock(mutex_);
-  // 重置recently_tickled_标志位，下次再有新的定时器插入队列头部时，才会唤醒空闲线程
-  recently_tickled_ = false;
 
   if (timer_quque_.empty()) {
     return UINT64_MAX;
@@ -216,6 +199,9 @@ auto TimerManager::GetAllTriggeringTimerFuncs() -> std::vector<std::function<voi
       t->func_ = nullptr;
     }
   }
+  // 重置has_new_front_timer_标志位，下次再有新的定时器插入队列头部时，才会唤醒空闲线程
+  has_new_front_timer_ = false;
+
   return res;
 }
 
@@ -223,5 +209,9 @@ auto TimerManager::Empty() -> bool {
   std::shared_lock<MutexType> lock(mutex_);
   return timer_quque_.empty();
 }
+
+auto TimerManager::NeedTickle() -> bool { return has_new_front_timer_ && !recently_tickled_; }
+
+void TimerManager::SetTickled() { recently_tickled_ = true; }
 
 }  // namespace wtsclwq

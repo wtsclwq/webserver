@@ -1,10 +1,12 @@
 #ifndef _SOCK_IO_SCHEDULER_H_
 #define _SOCK_IO_SCHEDULER_H_
 
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <mutex>
 #include <shared_mutex>
+#include <vector>
 #include "coroutine.h"
 #include "fd_context.h"
 #include "lock.h"
@@ -12,7 +14,7 @@
 #include "timer.h"
 
 namespace wtsclwq {
-class SockIoScheduler : public Scheduler, public TimerManager, public std::enable_shared_from_this<SockIoScheduler> {
+class SockIoScheduler : public Scheduler {
  public:
   using s_ptr = std::shared_ptr<SockIoScheduler>;
   using MutexType = std::shared_mutex;
@@ -89,11 +91,6 @@ class SockIoScheduler : public Scheduler, public TimerManager, public std::enabl
   void Idle() override;
 
   /**
-   * @brief
-   */
-  void OnNewTimerAtFront() override;
-
-  /**
    * @brief 判断当前调度器的状态是否可以停止，并且返回最近一个定时器任务的超时时间
    * @param[out] timeout 最近一个定时器的超时时间，用于idle协程的epoll_wait
    * @return 返回是否可以停止
@@ -106,9 +103,15 @@ class SockIoScheduler : public Scheduler, public TimerManager, public std::enabl
    */
   void ContextVecResize(size_t size);
 
+  auto AddTimer(uint64_t interval_time, std::function<void()> func, bool recurring = false) -> Timer::s_ptr;
+
+  auto AddConditionTimer(uint64_t interval_time, const std::function<void()> &func, const std::function<bool()> &cond,
+                         bool recurring = false) -> Timer::s_ptr;
+
  private:
   int epoll_fd_{0};
   int tickle_pipe_fds_[2]{};
+  TimerManager::s_ptr timer_manager_{nullptr};
   std::atomic<size_t> pending_event_count_{0};
   std::vector<FileDescContext::s_ptr> fd_contexts_{};
   std::shared_mutex mutex_{};

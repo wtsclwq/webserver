@@ -11,10 +11,12 @@
 #include <mutex>
 #include <shared_mutex>
 #include <type_traits>
+#include <utility>
 #include "log.h"
 #include "macro.h"
 #include "server/coroutine.h"
 #include "server/fd_context.h"
+#include "server/timer.h"
 
 namespace wtsclwq {
 static auto sys_logger = NAMED_LOGGER("system");
@@ -28,6 +30,8 @@ SockIoScheduler::SockIoScheduler(size_t thread_num, bool use_creator, std::strin
   // 初始化管道
   int ret = pipe(tickle_pipe_fds_);
   ASSERT(ret == 0);
+
+  timer_manager_ = std::make_shared<TimerManager>();
 }
 
 SockIoScheduler::~SockIoScheduler() {
@@ -89,6 +93,8 @@ auto SockIoScheduler::AddEventListening(int target_fd, FileDescContext::EventTyp
     LOG_ERROR(sys_logger) << "fd: " << target_fd << " has already registered event: " << target_event_type;
     ASSERT(false)
   }
+  // 如果该fd从未注册过事件，那么操作类型就是ADD，否则就是MOD
+  int op = fd_ctx->registered_event_types_ == FileDescContext::EventType::None ? EPOLL_CTL_ADD : EPOLL_CTL_MOD;
 
   // 先更新FDContext的状态，因为如果先向epoll注册了时间，有一种极限状态是事件触发了，但是我们的FDContext还没有更新，这样就会导致事件回调函数找不到
   //
@@ -108,10 +114,8 @@ auto SockIoScheduler::AddEventListening(int target_fd, FileDescContext::EventTyp
     event_ctx->func_ = std::move(cb_func);
   }
 
-  // 如果该fd从未注册过事件，那么操作类型就是ADD，否则就是MOD
-  int op = fd_ctx->registered_event_types_ == FileDescContext::EventType::None ? EPOLL_CTL_ADD : EPOLL_CTL_MOD;
   epoll_event event_info{};
-  event_info.data.fd = target_fd;  // 似乎可有可无？
+  // event_info.data.fd = target_fd;  // 似乎可有可无？
   event_info.events = EPOLLET | static_cast<uint32_t>(fd_ctx->registered_event_types_ | target_event_type);  // 边缘触发
   event_info.data.ptr = fd_ctx.get();  // 事件触发后，可以通过该指针获取到fd_context，从而获取到事件回调函数
   int ret = epoll_ctl(epoll_fd_, op, target_fd, &event_info);
@@ -150,7 +154,7 @@ auto SockIoScheduler::RemoveEventListening(int target_fd, FileDescContext::Event
   // 如果清除之后，fd上没有任何事件了，那么就从epoll中DEL该fd，否则是MOD
   int op = new_event_types == FileDescContext::EventType::None ? EPOLL_CTL_DEL : EPOLL_CTL_MOD;
   epoll_event event_info{};
-  event_info.data.fd = target_fd;
+  // event_info.data.fd = target_fd;
   event_info.events = EPOLLET | static_cast<uint32_t>(new_event_types);
   event_info.data.ptr = fd_ctx.get();
   int ret = epoll_ctl(epoll_fd_, op, target_fd, &event_info);
@@ -192,7 +196,7 @@ auto SockIoScheduler::RemoveAndTriggerEventListening(int target_fd, FileDescCont
   // 如果清除之后，fd上没有任何事件了，那么就从epoll中DEL该fd，否则是MOD
   int op = new_event_types == FileDescContext::EventType::None ? EPOLL_CTL_DEL : EPOLL_CTL_MOD;
   epoll_event event_info{};
-  event_info.data.fd = target_fd;
+  // event_info.data.fd = target_fd;
   event_info.events = EPOLLET | static_cast<uint32_t>(new_event_types);
   event_info.data.ptr = fd_ctx.get();
   int ret = epoll_ctl(epoll_fd_, op, target_fd, &event_info);
@@ -229,7 +233,7 @@ auto SockIoScheduler::RemoveAndTriggerAllTypeEventListening(int target_fd) -> bo
   // 清除epoll中目标fd上的所有事件
   int op = EPOLL_CTL_DEL;
   epoll_event event_info{};
-  event_info.data.fd = target_fd;
+  // event_info.data.fd = target_fd;
   event_info.events = EPOLLET;
   event_info.data.ptr = fd_ctx.get();
   int ret = epoll_ctl(epoll_fd_, op, target_fd, &event_info);
@@ -254,8 +258,6 @@ auto SockIoScheduler::RemoveAndTriggerAllTypeEventListening(int target_fd) -> bo
   return true;
 }
 
-void SockIoScheduler::OnNewTimerAtFront() { Tickle(); }
-
 auto SockIoScheduler::GetThreadSockIoScheduler() -> SockIoScheduler::s_ptr {
   return std::dynamic_pointer_cast<SockIoScheduler>(GetThreadScheduler());
 }
@@ -276,7 +278,7 @@ auto SockIoScheduler::IsStopable() -> bool {
   // 1. 没有需要触发的定时器
   // 2. 没有待触发的IO事件
   // 3. 线程池中的线程都是空闲的（Scheduler::IsStopable）
-  return GetRecentTriggerTime() == UINT64_MAX && pending_event_count_ == 0 && Scheduler::IsStopable();
+  return timer_manager_->GetRecentTriggerTime() == UINT64_MAX && pending_event_count_ == 0 && Scheduler::IsStopable();
 }
 
 void SockIoScheduler::Idle() {
@@ -293,7 +295,7 @@ void SockIoScheduler::Idle() {
       LOG_DEBUG(sys_logger) << "SockIoScheduler::Idle, stopable exit";
       break;
     }
-    uint64_t next_timeout = GetRecentTriggerTime();
+    uint64_t next_timeout = timer_manager_->GetRecentTriggerTime();
     int ret = 0;
     do {
       // 最大超时时间为5s，如果距离下一个定时器触发的时间大于5s，那么epoll_wait就等待5s
@@ -309,7 +311,7 @@ void SockIoScheduler::Idle() {
     } while (true);
 
     // 取出所有需要触发的定时器回调函数
-    timer_cb_funcs = GetAllTriggeringTimerFuncs();
+    timer_cb_funcs = timer_manager_->GetAllTriggeringTimerFuncs();
     // 执行所有定时器回调函数
     for (const auto &timer_cb_func : timer_cb_funcs) {
       timer_cb_func();
@@ -322,13 +324,11 @@ void SockIoScheduler::Idle() {
       // 如果是用来唤醒空闲线程的管道，那么就丢弃管道中的数据，然后忽略这个事件
       if (event_info.data.fd == tickle_pipe_fds_[0]) {
         std::unique_ptr<uint8_t[]> dummy_data(new uint8_t[max_pipe_read_size]);
-        while (read(tickle_pipe_fds_[0], dummy_data.get(), max_pipe_read_size) != 0) {
+        while (read(tickle_pipe_fds_[0], dummy_data.get(), max_pipe_read_size) > 0) {
         }
         continue;
       }
-      int fd = event_info.data.fd;
       auto *fd_ctx = static_cast<FileDescContext *>(event_info.data.ptr);
-      ASSERT(fd == fd_ctx->sys_fd_);
       std::lock_guard<FileDescContext::MutexType> lock(fd_ctx->mutex_);
       // 如果fd上没有注册任何事件，那么直接忽略
       if (fd_ctx->registered_event_types_ == FileDescContext::EventType::None) {
@@ -360,9 +360,9 @@ void SockIoScheduler::Idle() {
       int left_events = fd_ctx->registered_event_types_ & (~real_events);
       int op = left_events == FileDescContext::EventType::None ? EPOLL_CTL_DEL : EPOLL_CTL_MOD;
       event_info.events = EPOLLET | static_cast<uint32_t>(left_events);
-      int ret2 = epoll_ctl(epoll_fd_, op, fd, &event_info);
+      int ret2 = epoll_ctl(epoll_fd_, op, fd_ctx->sys_fd_, &event_info);
       if (ret2 != 0) {
-        LOG_ERROR(sys_logger) << "epoll_ctl failed, fd: " << fd << ", op: " << op
+        LOG_ERROR(sys_logger) << "epoll_ctl failed, fd: " << fd_ctx->sys_fd_ << ", op: " << op
                               << ", event_type: " << fd_ctx->registered_event_types_ << ", errno: " << errno
                               << ", errstr: " << strerror(errno);
         continue;
@@ -387,4 +387,24 @@ void SockIoScheduler::Idle() {
     raw_ptr->Yield();
   }
 }
+
+auto SockIoScheduler::AddTimer(uint64_t interval_time, std::function<void()> func, bool recurring) -> Timer::s_ptr {
+  auto res = timer_manager_->AddTimer(interval_time, std::move(func), recurring);
+  if (timer_manager_->NeedTickle()) {
+    Tickle();
+    timer_manager_->SetTickled();
+  }
+  return res;
+}
+
+auto SockIoScheduler::AddConditionTimer(uint64_t interval_time, const std::function<void()> &func,
+                                        const std::function<bool()> &cond, bool recurring) -> Timer::s_ptr {
+  auto res = timer_manager_->AddConditionTimer(interval_time, func, cond, recurring);
+  if (timer_manager_->NeedTickle()) {
+    Tickle();
+    timer_manager_->SetTickled();
+  }
+  return res;
+}
+
 }  // namespace wtsclwq
