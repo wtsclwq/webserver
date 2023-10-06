@@ -39,6 +39,8 @@ set(LIB_SRC
     server/fd_context.cpp
     server/timer.cpp
     server/sock_io_scheduler.cpp
+    server/hook.cpp
+    server/fd_manager.cpp
     )
     
 add_link_options("-rdynamic")
@@ -57,6 +59,7 @@ wtsclwq_add_executable(test_coroutine "test/test_coroutine.cpp" server "${LIBS}"
 wtsclwq_add_executable(test_scheduler "test/test_scheduler.cpp" server "${LIBS}")
 wtsclwq_add_executable(test_timer "test/test_timer.cpp" server "${LIBS}")
 wtsclwq_add_executable(test_sock_io_scheduler "test/test_sock_io_scheduler.cpp" server "${LIBS}")
+wtsclwq_add_executable(test_hook "test/test_hook.cpp" server "${LIBS}")
 endif()
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)

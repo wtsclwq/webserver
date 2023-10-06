@@ -78,7 +78,7 @@ void ConfigManager::LoadFromYaml(const YAML::Node &root) {
   }
 }
 
-static std::unordered_map<std::string, u_int64_t> file2modifytime;
+static std::unordered_map<std::string, int64_t> file2modifytime;
 static std::mutex mutex;
 
 void ConfigManager::LoadFromConfDir(std::string_view path, bool force) {

@@ -1,5 +1,6 @@
 #include "hook.h"
 #include <asm-generic/socket.h>
+#include <bits/types/struct_timeval.h>
 #include <dlfcn.h>
 #include <fcntl.h>
 #include <sys/socket.h>
@@ -55,7 +56,6 @@ void HookInit() {
 #define FUNC(name) name##_f = reinterpret_cast<name##_func>(dlsym(RTLD_NEXT, #name));
   WRAP(FUNC)  // NOLINT
 #undef FUNC
-  is_inited = true;
 }
 
 static uint64_t connect_timeout = -1;
@@ -70,11 +70,11 @@ struct __HookIniter {  // NOLINT
   }
 };
 
-static __HookIniter __hook_initer;  // NOLINT
+static __HookIniter __hook_initer{};  // NOLINT
 
 auto IsHookEnabled() -> bool { return is_hook_enabled; }
 
-void SetHookEnabled(bool enabled) { is_hook_enabled = enabled; }
+void SetHookEnabled(bool v) { is_hook_enabled = v; }
 
 }  // namespace wtsclwq
 
@@ -394,10 +394,91 @@ auto fcntl(int fd, int cmd, ...) -> int {
       }
       return fcntl_f(fd, cmd, arg);
     }
+    case F_GETFL: {
+      va_end(arg_list);
+      int arg = fcntl_f(fd, cmd);
+      auto fd_info_wrapper = wtsclwq::FdWrapperMgr::GetInstance()->Get(fd);
+      if (fd_info_wrapper == nullptr || fd_info_wrapper->IsClosed() || !fd_info_wrapper->IsSocket()) {
+        return arg;
+      }
+      if (fd_info_wrapper->IsUserLevelNonBlock()) {
+        return arg | O_NONBLOCK;
+      }
+      return arg & ~O_NONBLOCK;
+    }
+    case F_DUPFD:
+    case F_DUPFD_CLOEXEC:
+    case F_SETFD:
+    case F_SETOWN:
+    case F_SETSIG:
+    case F_SETLEASE:
+    case F_NOTIFY:
+#ifdef F_SETPIPE_SZ
+    case F_SETPIPE_SZ: {
+      int arg = va_arg(arg_list, int);
+      va_end(arg_list);
+      return fcntl_f(fd, cmd, arg);
+    }
+#endif
+#ifdef F_GETPIPE_SZ
+    case F_GETPIPE_SZ: {
+      va_end(arg_list);
+      return fcntl_f(fd, cmd);
+    }
+#endif
+    case F_SETLK:
+    case F_SETLKW:
+    case F_GETLK: {
+      struct flock *arg = va_arg(arg_list, struct flock *);
+      va_end(arg_list);
+      return fcntl_f(fd, cmd, arg);
+    }
+    case F_GETOWN_EX:
+    case F_SETOWN_EX: {
+      struct f_owner_exlock *arg = va_arg(arg_list, struct f_owner_exlock *);
+      va_end(arg_list);
+      return fcntl_f(fd, cmd, arg);
+    }
+    default:
+      va_end(arg_list);
+      return fcntl_f(fd, cmd);
   }
+}
 
-  auto ret = fcntl_f(fd, cmd, arg_list);
-  va_end(arg_list);
-  return ret;
+auto ioctl(int fd, uint64_t request, ...) -> int {
+  va_list va;
+  va_start(va, request);
+  void *arg = va_arg(va, void *);
+  va_end(va);
+  if (FIONBIO == request) {
+    bool user_nonblock = !(*static_cast<int *>(arg) == 0);
+    auto fd_info_wrapper = wtsclwq::FdWrapperMgr::GetInstance()->Get(fd);
+    if (fd_info_wrapper == nullptr || fd_info_wrapper->IsClosed() || !fd_info_wrapper->IsSocket()) {
+      return ioctl_f(fd, request, arg);
+    }
+    fd_info_wrapper->SetUserLevelNonBlock(user_nonblock);
+  }
+  return ioctl_f(fd, request, arg);
+}
+
+auto getsockopt(int fd, int level, int optname, void *__restrict optval, socklen_t *__restrict optlen) -> int {
+  return getsockopt_f(fd, level, optname, optval, optlen);
+}
+
+auto setsockopt(int fd, int level, int optname, const void *optval, socklen_t optlen) -> int {
+  if (!wtsclwq::IsHookEnabled()) {
+    return setsockopt_f(fd, level, optname, optval, optlen);
+  }
+  if (level == SOL_SOCKET) {
+    if (optname == SO_RCVTIMEO || optname == SO_SNDTIMEO) {
+      auto fd_info_wrapper = wtsclwq::FdWrapperMgr::GetInstance()->Get(fd);
+      if (fd_info_wrapper != nullptr) {
+        const auto *time_val = static_cast<const timeval *>(optval);
+        uint64_t timeout_ms = time_val->tv_sec * 1000 + time_val->tv_usec / 1000;
+        fd_info_wrapper->SetTimeout(optname, timeout_ms);
+      }
+    }
+  }
+  return setsockopt_f(fd, level, optname, optval, optlen);
 }
 }

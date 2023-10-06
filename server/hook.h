@@ -14,7 +14,7 @@ namespace wtsclwq {
 auto IsHookEnabled() -> bool;
 
 // 启用当前线程的hook io
-void EnableHoo();
+void SetHookEnabled(bool v);
 }  // namespace wtsclwq
 
 extern "C" {

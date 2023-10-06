@@ -4,6 +4,7 @@
 #include <mutex>
 #include <vector>
 #include "coroutine.h"
+#include "hook.h"
 #include "log.h"
 #include "macro.h"
 #include "server/utils.h"
@@ -143,6 +144,7 @@ void Scheduler::Stop() {
 
 void Scheduler::Run() {
   LOG_DEBUG(sys_logger) << "Thread " << GetCurrSysThreadId() << " is running";
+  SetHookEnabled(true);
   InitThreadScheduler();
 
   // 如果当前线程不是调度器创建者线程，也就是说当前线程是线程池中的线程，那么需要先为其启动协程模式
