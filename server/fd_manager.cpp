@@ -6,6 +6,7 @@
 #include <memory>
 #include <mutex>
 #include <shared_mutex>
+#include "hook.h"
 
 namespace wtsclwq {
 
@@ -13,7 +14,7 @@ FileInfoWrapper::FileInfoWrapper(int fd) : sys_fd_(fd) { Init(); }
 
 FileInfoWrapper::~FileInfoWrapper() {
   if (sys_fd_ != -1) {
-    close(sys_fd_);
+    close_f(sys_fd_);
   }
 }
 
@@ -33,9 +34,9 @@ auto FileInfoWrapper::Init() -> bool {
 
   // 如果是sockfd，那么默认设置为非阻塞
   if (is_socket_) {
-    int flags = fcntl(sys_fd_, F_GETFL, 0);
+    int flags = fcntl_f(sys_fd_, F_GETFL, 0);
     if ((flags & O_NONBLOCK) == 0) {
-      fcntl(sys_fd_, F_SETFL, flags | O_NONBLOCK);  // 设置为非阻塞
+      fcntl_f(sys_fd_, F_SETFL, flags | O_NONBLOCK);  // 设置为非阻塞
     }
     is_sys_non_block_ = true;
   } else {

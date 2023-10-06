@@ -184,7 +184,7 @@ class LogFormatter {
    * 默认格式描述：年-月-日 时:分:秒 [累计运行毫秒数] \\t 线程id \\t 线程名称 \\t 协程id \\t [日志级别] \\t [日志器名称]
    * \\t 文件名:行号 \\t 日志消息 换行符
    */
-  explicit LogFormatter(std::string_view pattern = "%d{%Y-%m-%d %H:%M:%S} [%rms]%T%t%T%N%T%C%T[%p]%T[%c]%T%f:%l%T%m%n");
+  explicit LogFormatter(std::string_view pattern = "%d{%Y-%m-%d %H:%M:%S} [%rms] %t %N %C [%p] [%c] %f:%l %m%n");
 
   /**
    * @brief 初始化，解析日志格式模板

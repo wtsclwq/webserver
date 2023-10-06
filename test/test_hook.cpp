@@ -29,8 +29,8 @@ void TestSock() {
   int sock = socket(AF_INET, SOCK_STREAM, 0);
   sockaddr_in addr;
   addr.sin_family = AF_INET;
-  addr.sin_port = htons(8080);
-  inet_pton(AF_INET, "110.242.68.66", &addr.sin_addr.s_addr);
+  addr.sin_port = htons(80);
+  inet_pton(AF_INET, "47.110.190.167", &addr.sin_addr.s_addr);
   LOG_INFO(root_logger) << "connect start";
   int ret = connect(sock, reinterpret_cast<sockaddr *>(&addr), sizeof(addr));
   LOG_INFO(root_logger) << "connect end"
@@ -57,7 +57,7 @@ void TestSock() {
     return;
   }
   buffer.resize(ret);
-  LOG_INFO(root_logger) << "recv data = " << buffer;
+  LOG_INFO(root_logger) << "recv data = \n" << buffer;
   close(sock);
 }
 

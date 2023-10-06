@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <cerrno>
+#include <cstdarg>
 #include <cstdint>
 #include <functional>
 #include <memory>
