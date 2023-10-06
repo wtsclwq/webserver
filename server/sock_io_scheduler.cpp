@@ -35,7 +35,6 @@ SockIoScheduler::SockIoScheduler(size_t thread_num, bool use_creator, std::strin
 }
 
 SockIoScheduler::~SockIoScheduler() {
-  Stop();
   close(epoll_fd_);
   close(tickle_pipe_fds_[0]);
   close(tickle_pipe_fds_[1]);

@@ -39,7 +39,7 @@ auto Scheduler::GetThreadScheduler() -> s_ptr { return thread_scheduler; }
 
 void Scheduler::InitThreadScheduler() {
   ASSERT(thread_scheduler == nullptr);
-  thread_scheduler = this->shared_from_this();
+  thread_scheduler = std::dynamic_pointer_cast<Scheduler>(this->shared_from_this());
 }
 
 auto Scheduler::HasIdleThread() -> bool { return idle_thread_count_ > 0; }
