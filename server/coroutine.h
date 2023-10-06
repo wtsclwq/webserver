@@ -25,7 +25,8 @@ class Coroutine : public std::enable_shared_from_this<Coroutine> {
    * @param stack_size 协程栈大小
    * @param if_run_in_scheduler 构造函数所在线程是否参与协程调度
    */
-  explicit Coroutine(std::function<void()> task_func, uint32_t stack_size = 0, bool has_parent = false, const s_ptr &parent = nullptr);
+  explicit Coroutine(std::function<void()> task_func, uint32_t stack_size = 0, bool has_parent = false,
+                     const s_ptr &parent = nullptr);
 
   ~Coroutine();
 
@@ -79,6 +80,11 @@ class Coroutine : public std::enable_shared_from_this<Coroutine> {
    * @brief 获取当前线程正在执行的协程
    */
   static auto GetThreadRunningCoroutine() -> s_ptr;
+
+  /**
+   * @brief 获取当前线程正在执行的协程的id
+   */
+  static auto GetThreadRunningCoroutineId() -> uint64_t;
 
   /**
    * @brief 获取当前线程的主协程

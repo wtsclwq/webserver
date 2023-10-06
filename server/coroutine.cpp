@@ -165,6 +165,13 @@ auto Coroutine::GetThreadRunningCoroutine() -> s_ptr { return thread_running_cor
 
 auto Coroutine::GetThreadMainCoroutine() -> s_ptr { return thread_main_coroutine; }
 
+auto Coroutine::GetThreadRunningCoroutineId() -> uint64_t {
+  if (thread_running_coroutine != nullptr) {
+    return thread_running_coroutine->id_;
+  }
+  return 0;
+}
+
 void Coroutine::MainFunc() {
   Coroutine::s_ptr curr = GetThreadRunningCoroutine();  // 获取当前线程中正在执行的协程
   ASSERT(curr != nullptr);

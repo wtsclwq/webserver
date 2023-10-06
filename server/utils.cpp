@@ -15,13 +15,14 @@
 #include <fstream>
 #include <sstream>
 #include <string_view>
+#include "server/coroutine.h"
 
 namespace wtsclwq {
 
 auto GetCurrSysThreadId() -> pid_t { return syscall(SYS_gettid); }
 
 // TODO(wtsclwq)
-auto GetCurrCouroutineId() -> uint64_t { return 0; }
+auto GetCurrCouroutineId() -> uint64_t { return Coroutine::GetThreadRunningCoroutineId(); }
 
 auto GetCurrSysThreadName() -> std::string {
   char name[16] = {0};

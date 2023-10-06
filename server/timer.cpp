@@ -28,8 +28,10 @@ auto Timer::Cancel() -> bool {
   if (func_ != nullptr) {
     func_ = nullptr;
     auto it = manager_ptr->timer_quque_.find(shared_from_this());
-    manager_ptr->timer_quque_.erase(it);
-    return true;
+    if (it != manager_ptr->timer_quque_.end()) {
+      manager_ptr->timer_quque_.erase(it);
+      return true;
+    }
   }
   return false;
 }

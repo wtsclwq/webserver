@@ -380,10 +380,11 @@ void SockIoScheduler::Idle() {
 
     // 处理完了所有定时器和IO事件，那么就线程可以尝试去执行线程池任务队列中的任务了
     // 因为其实TriggerEvent只是将任务放入了线程池的任务队列中，而没有真正执行
-    Coroutine::s_ptr curr = Coroutine::GetThreadRunningCoroutine();
-    auto raw_ptr = curr.get();
-    curr.reset();
-    raw_ptr->Yield();
+    // Coroutine::s_ptr curr = Coroutine::GetThreadRunningCoroutine();
+    // auto raw_ptr = curr.get();
+    // curr.reset();
+    // raw_ptr->Yield();
+    Coroutine::GetThreadRunningCoroutine()->Yield();
   }
 }
 
