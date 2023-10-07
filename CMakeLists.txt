@@ -43,6 +43,7 @@ set(LIB_SRC
     server/fd_manager.cpp
     server/address.cpp
     server/socket.cpp
+    server/serialize.cpp
     )
     
 add_link_options("-rdynamic")
@@ -65,6 +66,7 @@ wtsclwq_add_executable(test_hook "test/test_hook.cpp" server "${LIBS}")
 wtsclwq_add_executable(test_address "test/test_address.cpp" server "${LIBS}")
 wtsclwq_add_executable(test_socket_tcpserver "test/test_socket_tcpserver.cpp" server "${LIBS}")
 wtsclwq_add_executable(test_socket_tcpclient "test/test_socket_tcpclient.cpp" server "${LIBS}")
+wtsclwq_add_executable(test_serialize "test/test_serialize.cpp" server "${LIBS}")
 endif()
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)

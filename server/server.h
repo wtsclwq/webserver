@@ -12,6 +12,7 @@
 #include "log.h"
 #include "macro.h"
 #include "scheduler.h"
+#include "serialize.h"
 #include "singleton.h"
 #include "sock_io_scheduler.h"
 #include "socket.h"
