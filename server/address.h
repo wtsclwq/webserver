@@ -140,9 +140,9 @@ class IPv4Address : public IPAddress {
   /**
    * @brief 根据IP字符串（点分十进制）和端口号创建IPv4Address指针
    */
-  static auto CreateAddr(std::string_view ip, uint16_t port = 0) -> s_ptr;
+  static auto CreateAddr(std::string_view ip, uint16_t port) -> s_ptr;
 
-  IPv4Address();
+  // IPv4Address();
 
   /**
    * @brief 构造函数，封装sockaddr_in
@@ -173,7 +173,7 @@ class IPv4Address : public IPAddress {
   void SetPort(uint16_t port) override;
 
  private:
-  sockaddr_in addr_;
+  sockaddr_in addr_{};
 };
 
 class IPv6Address : public IPAddress {
@@ -183,7 +183,7 @@ class IPv6Address : public IPAddress {
   /**
    * @brief 根据IP字符串和端口号创建IPv6指针
    */
-  static auto CreateAddr(std::string_view ip, uint16_t port = 0) -> s_ptr;
+  static auto CreateAddr(std::string_view ip, uint16_t port) -> s_ptr;
 
   IPv6Address();
 
@@ -195,7 +195,7 @@ class IPv6Address : public IPAddress {
   /**
    * @brief 通过二进制IP地址和端口初始化封装的sockaddr_in6
    */
-  explicit IPv6Address(const uint8_t ip[16], uint16_t port = 0);
+  explicit IPv6Address(const uint8_t ip[16], uint16_t port);
 
   auto GetSockAddr() const -> const sockaddr * override;
 
@@ -216,7 +216,7 @@ class IPv6Address : public IPAddress {
   void SetPort(uint16_t port) override;
 
  private:
-  sockaddr_in6 addr_;
+  sockaddr_in6 addr_{};
 };
 
 class UnixAddress : public Address {
@@ -232,6 +232,8 @@ class UnixAddress : public Address {
 
   void SetAddrlen(uint32_t);
 
+  auto GetPath() const -> std::string;
+
   auto GetSockAddr() const -> const sockaddr * override;
 
   auto GetSockAddr() -> sockaddr * override;
@@ -241,8 +243,8 @@ class UnixAddress : public Address {
   auto DumpToStream(std::ostream &os) const -> std::ostream & override;
 
  private:
-  sockaddr_un addr_;
-  socklen_t addr_len_;
+  sockaddr_un addr_{};
+  socklen_t addr_len_{};
 };
 
 class UnknownAddress : public Address {
@@ -254,6 +256,9 @@ class UnknownAddress : public Address {
   auto GetSockAddr() -> sockaddr * override;
   auto GetSockAddrLen() const -> socklen_t override;
   auto DumpToStream(std::ostream &os) const -> std::ostream & override;
+
+ private:
+  sockaddr addr_{};
 };
 
 /**

@@ -1,15 +1,20 @@
 #include "address.h"
+#include <arpa/inet.h>
 #include <ifaddrs.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <ostream>
 #include <string_view>
 #include <vector>
+#include "endian.h"
 #include "log.h"
+#include "server/endian.h"
 #include "server/log.h"
 
 namespace wtsclwq {
@@ -29,6 +34,8 @@ static auto CountBits(T value) -> uint32_t {
   }
   return count;
 }
+
+Address::~Address() = default;
 
 auto Address::CreateAddr(const sockaddr *addr, socklen_t addr_len) -> Address::s_ptr {
   if (addr == nullptr) {
@@ -241,6 +248,225 @@ auto IPv4Address::CreateAddr(std::string_view ip, uint16_t port) -> IPv4Address:
   }
 
   auto res = std::make_shared<IPv4Address>();
-  res->addr_.sin_port = 
+  res->addr_.sin_port = OnlyByteswapOnLittleEndian(port);
+  int ret = inet_pton(AF_INET, ip.data(), &res->addr_.sin_addr);
+  if (ret <= 0) {
+    LOG_ERROR(sys_logger) << "inet_pton error: " << strerror(errno);
+    return nullptr;
   }
+  return res;
+}
+
+// IPv4Address::IPv4Address() = default;
+
+IPv4Address::IPv4Address(const sockaddr_in &addr) : addr_(addr) {}
+
+IPv4Address::IPv4Address(uint32_t ip, uint16_t port) {
+  addr_.sin_family = AF_INET;
+  addr_.sin_addr.s_addr = OnlyByteswapOnLittleEndian(ip);
+  addr_.sin_port = OnlyByteswapOnLittleEndian(port);
+}
+
+auto IPv4Address::GetSockAddr() const -> const sockaddr * { return reinterpret_cast<const sockaddr *>(&addr_); }
+
+auto IPv4Address::GetSockAddr() -> sockaddr * { return reinterpret_cast<sockaddr *>(&addr_); }
+
+auto IPv4Address::GetSockAddrLen() const -> socklen_t { return sizeof(addr_); }
+
+auto IPv4Address::SetPort(uint16_t port) -> void { addr_.sin_port = OnlyByteswapOnLittleEndian(port); }
+
+auto IPv4Address::GetPort() const -> uint16_t { return OnlyByteswapOnLittleEndian(addr_.sin_port); }
+
+auto IPv4Address::DumpToStream(std::ostream &os) const -> std::ostream & {
+  uint32_t addr = OnlyByteswapOnLittleEndian(addr_.sin_addr.s_addr);
+  os << (addr >> 24 & 0xff) << "." << (addr >> 16 & 0xff) << "." << (addr >> 8 & 0xff) << "." << (addr & 0xff);
+  os << ":" << GetPort();
+  return os;
+}
+
+auto IPv4Address::BroadCastAddress(uint32_t prefix_len) -> IPAddress::s_ptr {
+  if (prefix_len > 32) {
+    return nullptr;
+  }
+  sockaddr_in broadcast_addr = addr_;
+  broadcast_addr.sin_addr.s_addr |= OnlyByteswapOnLittleEndian(CreateMask<uint32_t>(prefix_len));
+  return std::make_shared<IPv4Address>(broadcast_addr);
+}
+
+auto IPv4Address::NetworkAddress(uint32_t prefix_len) -> IPAddress::s_ptr {
+  if (prefix_len > 32) {
+    return nullptr;
+  }
+  sockaddr_in net_addr = addr_;
+  net_addr.sin_addr.s_addr &= OnlyByteswapOnLittleEndian(~CreateMask<uint32_t>(prefix_len));
+  return std::make_shared<IPv4Address>(net_addr);
+}
+
+auto IPv4Address::SubnetMask(uint32_t prefix_len) -> IPAddress::s_ptr {
+  if (prefix_len > 32) {
+    return nullptr;
+  }
+  sockaddr_in mask_addr{};
+  mask_addr.sin_family = AF_INET;
+  mask_addr.sin_addr.s_addr = ~OnlyByteswapOnLittleEndian(CreateMask<uint32_t>(prefix_len));
+  return std::make_shared<IPv4Address>(mask_addr);
+}
+
+auto IPv6Address::CreateAddr(std::string_view ip, uint16_t port) -> IPv6Address::s_ptr {
+  if (ip.empty()) {
+    return nullptr;
+  }
+
+  auto res = std::make_shared<IPv6Address>();
+  res->addr_.sin6_port = OnlyByteswapOnLittleEndian(port);
+  int ret = inet_pton(AF_INET6, ip.data(), &res->addr_.sin6_addr);
+  if (ret <= 0) {
+    LOG_ERROR(sys_logger) << "inet_pton error: " << strerror(errno);
+    return nullptr;
+  }
+  return res;
+}
+
+IPv6Address::IPv6Address() {
+  addr_.sin6_family = AF_INET6;
+  addr_.sin6_port = 0;
+  addr_.sin6_flowinfo = 0;
+  addr_.sin6_scope_id = 0;
+}
+
+IPv6Address::IPv6Address(const sockaddr_in6 &addr) : addr_(addr) {}
+
+auto IPv6Address::GetSockAddr() const -> const sockaddr * { return reinterpret_cast<const sockaddr *>(&addr_); }
+
+auto IPv6Address::GetSockAddr() -> sockaddr * { return reinterpret_cast<sockaddr *>(&addr_); }
+
+auto IPv6Address::GetSockAddrLen() const -> socklen_t { return sizeof(addr_); }
+
+auto IPv6Address::SetPort(uint16_t port) -> void { addr_.sin6_port = OnlyByteswapOnLittleEndian(port); }
+
+auto IPv6Address::GetPort() const -> uint16_t { return OnlyByteswapOnLittleEndian(addr_.sin6_port); }
+
+auto IPv6Address::DumpToStream(std::ostream &os) const -> std::ostream & {
+  os << "[";
+  auto *addr = reinterpret_cast<const uint8_t *>(addr_.sin6_addr.s6_addr);
+  bool used_zeros = false;
+  for (size_t i = 0; i < 8; ++i) {
+    if (addr[i] == 0 && !used_zeros) {
+      continue;
+    }
+    if ((i != 0) && addr[i - 1] == 0 && !used_zeros) {
+      os << ":";
+      used_zeros = true;
+    }
+    if (i != 0) {
+      os << ":";
+    }
+    os << std::hex << static_cast<int>(addr[i]) << std::dec;
+  }
+
+  if (!used_zeros && addr[7] == 0) {
+    os << "::";
+  }
+
+  os << "]:" << OnlyByteswapOnLittleEndian(addr_.sin6_port);
+  return os;
+}
+
+auto IPv6Address::BroadCastAddress(uint32_t prefix_len) -> IPAddress::s_ptr {
+  if (prefix_len > 128) {
+    return nullptr;
+  }
+  sockaddr_in6 broadcast_addr = addr_;
+  broadcast_addr.sin6_addr.s6_addr[prefix_len / 8] |= CreateMask<uint8_t>(prefix_len % 8);
+  for (size_t i = prefix_len / 8 + 1; i < 16; ++i) {
+    broadcast_addr.sin6_addr.s6_addr[i] = 0xff;
+  }
+  return std::make_shared<IPv6Address>(broadcast_addr);
+}
+
+auto IPv6Address::NetworkAddress(uint32_t prefix_len) -> IPAddress::s_ptr {
+  if (prefix_len > 128) {
+    return nullptr;
+  }
+  sockaddr_in6 net_addr = addr_;
+  net_addr.sin6_addr.s6_addr[prefix_len / 8] &= CreateMask<uint8_t>(prefix_len % 8);
+  for (size_t i = prefix_len / 8 + 1; i < 16; ++i) {
+    net_addr.sin6_addr.s6_addr[i] = 0;
+  }
+  return std::make_shared<IPv6Address>(net_addr);
+}
+
+auto IPv6Address::SubnetMask(uint32_t prefix_len) -> IPAddress::s_ptr {
+  if (prefix_len > 128) {
+    return nullptr;
+  }
+  sockaddr_in6 mask_addr{};
+  mask_addr.sin6_family = AF_INET6;
+  mask_addr.sin6_addr.s6_addr[prefix_len / 8] = ~CreateMask<uint8_t>(prefix_len % 8);
+  for (size_t i = prefix_len / 8 + 1; i < 16; ++i) {
+    mask_addr.sin6_addr.s6_addr[i] = 0xff;
+  }
+  return std::make_shared<IPv6Address>(mask_addr);
+}
+
+UnixAddress::UnixAddress() {
+  const size_t max_addr_len = sizeof(reinterpret_cast<sockaddr_un *>(0)->sun_path) - 1;
+  addr_.sun_family = AF_UNIX;
+  addr_len_ = offsetof(sockaddr_un, sun_path) + max_addr_len;
+}
+
+UnixAddress::UnixAddress(std::string_view path) : UnixAddress() {
+  size_t len = std::min(path.size(), static_cast<size_t>(sizeof(addr_.sun_path) - 1));
+  memcpy(addr_.sun_path, path.data(), len);
+  addr_len_ = offsetof(sockaddr_un, sun_path) + len;
+  addr_.sun_path[len] = '\0';
+}
+
+auto UnixAddress::SetAddrlen(uint32_t len) -> void { addr_len_ = len; }
+
+auto UnixAddress::GetPath() const -> std::string {
+  std::stringstream ss;
+  if (addr_len_ > offsetof(sockaddr_un, sun_path) && addr_.sun_path[0] == '\0') {
+    ss << "\\0" << std::string(addr_.sun_path + 1, addr_len_ - offsetof(sockaddr_un, sun_path) - 1);
+  } else {
+    ss << addr_.sun_path;
+  }
+  return ss.str();
+}
+
+auto UnixAddress::GetSockAddr() const -> const sockaddr * { return reinterpret_cast<const sockaddr *>(&addr_); }
+
+auto UnixAddress::GetSockAddr() -> sockaddr * { return reinterpret_cast<sockaddr *>(&addr_); }
+
+auto UnixAddress::GetSockAddrLen() const -> socklen_t { return addr_len_; }
+
+auto UnixAddress::DumpToStream(std::ostream &os) const -> std::ostream & {
+  os << "unix:";
+  if (addr_len_ > offsetof(sockaddr_un, sun_path) && addr_.sun_path[0] == '\0') {
+    os << "\\0" << std::string_view(addr_.sun_path + 1, addr_len_ - offsetof(sockaddr_un, sun_path) - 1);
+  } else {
+    os << addr_.sun_path;
+  }
+  return os;
+}
+
+UnknownAddress::UnknownAddress(int family) { addr_.sa_family = family; }
+
+UnknownAddress::UnknownAddress(const sockaddr &addr) { addr_ = addr; }
+
+auto UnknownAddress::GetSockAddr() const -> const sockaddr * { return &addr_; }
+
+auto UnknownAddress::GetSockAddr() -> sockaddr * { return &addr_; }
+
+auto UnknownAddress::GetSockAddrLen() const -> socklen_t { return sizeof(addr_); }
+
+auto UnknownAddress::DumpToStream(std::ostream &os) const -> std::ostream & {
+  os << "unknow: sa_family=" << addr_.sa_family << ", addr_len=" << GetSockAddrLen();
+  return os;
+}
+
+auto operator<<(std::ostream &os, const Address &addr) -> std::ostream & {
+  addr.DumpToStream(os);
+  return os;
+}
 }  // namespace wtsclwq

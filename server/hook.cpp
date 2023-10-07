@@ -309,7 +309,11 @@ auto connect(int fd, const struct sockaddr *addr, socklen_t len) -> int {
 }
 
 auto accept(int fd, struct sockaddr *addr, socklen_t *len) -> int {
-  return DoIo(fd, accept_f, "accept", wtsclwq::FileDescContext::EventType::Read, SO_RCVTIMEO, addr, len);
+  int new_socket_fd = DoIo(fd, accept_f, "accept", wtsclwq::FileDescContext::EventType::Read, SO_RCVTIMEO, addr, len);
+  if (new_socket_fd > 0) {
+    wtsclwq::FdWrapperMgr::GetInstance()->Get(new_socket_fd, true);
+  }
+  return new_socket_fd;
 }
 
 auto read(int fd, void *buf, size_t nbytes) -> ssize_t {
